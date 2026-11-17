@@ -1,0 +1,6 @@
+{
+  "name": "Graphics Expert - Creative Designs & Professional Tools",
+  "description": "Original CorelDRAW, Illustrator, Photoshop & print-ready design templates, free browser creative utilities, and custom graphic design services by Graphics Expert.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
