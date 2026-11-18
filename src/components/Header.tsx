@@ -9,7 +9,6 @@ import {
   User as UserIcon,
   LogOut,
   Sliders,
-  Palette,
   Shield,
   Layers,
 } from 'lucide-react';
@@ -200,19 +199,6 @@ export const Header: React.FC = () => {
                       Customer Dashboard & Downloads
                     </button>
 
-                    {currentUser.role === 'designer' && (
-                      <button
-                        onClick={() => {
-                          setCurrentView('designer-dashboard');
-                          setIsUserDropdownOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 font-medium"
-                      >
-                        <Palette className="w-3.5 h-3.5" />
-                        Designer Portal & Uploads
-                      </button>
-                    )}
-
                     {currentUser.role === 'admin' && (
                       <button
                         onClick={() => {
@@ -318,17 +304,6 @@ export const Header: React.FC = () => {
                   >
                     Customer Dashboard
                   </button>
-                  {currentUser.role === 'designer' && (
-                    <button
-                      onClick={() => {
-                        setCurrentView('designer-dashboard');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full text-left py-2 text-sm font-medium text-indigo-700"
-                    >
-                      Designer Portal
-                    </button>
-                  )}
                   {currentUser.role === 'admin' && (
                     <button
                       onClick={() => {
