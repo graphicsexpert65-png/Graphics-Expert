@@ -1361,6 +1361,10 @@ async function startServer() {
   });
 
   app.post('/api/orders', (req: AuthenticatedRequest, res) => {
+    // Never mark an order as paid or release paid files until a real payment provider is integrated.
+    res.status(503).json({ error: 'Online payments are not available yet. Please contact Graphics Expert to place an order.' });
+    return;
+
     const { items, customerName, customerEmail, customerCountry, paymentMethod, couponCode } = req.body || {};
     if (!Array.isArray(items) || items.length === 0) {
       res.status(400).json({ error: 'Cart is empty.' });
