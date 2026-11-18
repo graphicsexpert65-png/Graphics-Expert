@@ -624,7 +624,13 @@ async function startServer() {
         res.status(401).json({ error: 'Administrator password is not configured or is incorrect.' });
         return;
       }
-    } else if (user.passwordHash && user.passwordSalt) {
+    } else {
+      // Accounts without stored password credentials must never authenticate.
+      // This also blocks the legacy demo customer/designer records from accepting any password.
+      if (!user.passwordHash || !user.passwordSalt) {
+        res.status(401).json({ error: 'Invalid email or password.' });
+        return;
+      }
       const { hash } = hashPassword(String(password), user.passwordSalt);
       if (hash !== user.passwordHash) {
         res.status(401).json({ error: 'Invalid email or password.' });
