@@ -61,7 +61,7 @@ export const HomeView: React.FC = () => {
             {/* Left Copy */}
             <div className="lg:col-span-7 space-y-6 relative z-10">
               <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wide text-slate-700 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="w-2 h-2 rounded-full bg-[#0F172A]" />
                 <span>GRAPHICS EXPERT · Creative Designs. Professional Tools.</span>
               </div>
 
@@ -93,7 +93,7 @@ export const HomeView: React.FC = () => {
                 {currentUser?.role === 'admin' && (
                   <button
                     onClick={() => setCurrentView('admin-dashboard')}
-                    className="px-5 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2"
+                    className="px-5 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2"
                   >
                     <Upload className="w-4 h-4" />
                     <span>Upload Design</span>
@@ -112,7 +112,7 @@ export const HomeView: React.FC = () => {
                   <span>Protected Signed Downloads</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Printer className="w-4 h-4 text-amber-600" />
+                  <Printer className="w-4 h-4 text-[#0F172A]" />
                   <span>CorelDRAW (.CDR), AI, EPS & PSD</span>
                 </div>
               </div>
@@ -123,7 +123,7 @@ export const HomeView: React.FC = () => {
               <div className="rounded-[1.75rem] bg-[#101b32] text-white border border-slate-700/70 shadow-[0_30px_80px_-25px_rgba(15,23,42,0.55)] p-6 sm:p-7 space-y-5 relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-400">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-200">
                       Multi-Format Digital Studio
                     </p>
                     <h2 className="text-lg font-bold font-display mt-0.5">
@@ -135,12 +135,12 @@ export const HomeView: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
-                    <span className="font-mono font-bold text-amber-400">.CDR</span>
+                    <span className="font-mono font-bold text-slate-200">.CDR</span>
                     <p className="font-semibold text-white mt-1">CorelDRAW</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Panaflex, Wedding & Visiting Cards</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
-                    <span className="font-mono font-bold text-orange-400">.AI / .EPS</span>
+                    <span className="font-mono font-bold text-slate-200">.AI / .EPS</span>
                     <p className="font-semibold text-white mt-1">Adobe Illustrator</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Scalable Press & Brand Vectors</p>
                   </div>
@@ -164,7 +164,7 @@ export const HomeView: React.FC = () => {
                   </span>
                   <button
                     onClick={() => setCurrentView(currentUser?.role === 'admin' ? 'admin-dashboard' : 'marketplace')}
-                    className="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1"
+                    className="text-slate-200 hover:text-slate-200 font-semibold flex items-center gap-1"
                   >
                     <span>{currentUser?.role === 'admin' ? 'Open Admin Studio' : 'Browse Store'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -184,7 +184,7 @@ export const HomeView: React.FC = () => {
             { value: 'Free browser tools', label: 'Useful utilities, right in your browser', icon: <Sparkles className="w-5 h-5" /> },
           ].map((item) => (
             <div key={item.value} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-              <span className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">{item.icon}</span>
+              <span className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center">{item.icon}</span>
               <span className="min-w-0">
                 <span className="block text-sm font-bold text-slate-900">{item.value}</span>
                 <span className="block text-xs text-slate-500 mt-0.5">{item.label}</span>
@@ -299,10 +299,10 @@ export const HomeView: React.FC = () => {
 
       {/* 4. CORELDRAW SPOTLIGHT BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-[#0F172A] text-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-amber-500/30 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-[#0F172A] text-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-slate-700 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
           <div className="space-y-3 z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-300 text-xs font-semibold uppercase tracking-wider border border-amber-500/30">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0F172A]/20 text-slate-200 text-xs font-semibold uppercase tracking-wider border border-slate-700">
+              <span className="w-2 h-2 rounded-full bg-white"></span>
               CorelDRAW (.CDR) & Print Press Specialists
             </div>
             <h3 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-white">
@@ -316,7 +316,7 @@ export const HomeView: React.FC = () => {
           <div className="z-10 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
             <button
               onClick={() => setCurrentView('marketplace')}
-              className="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2"
+              className="px-6 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2"
             >
               <span>Browse Marketplace</span>
               <ArrowRight className="w-4 h-4" />
