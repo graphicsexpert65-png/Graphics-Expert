@@ -19,7 +19,6 @@ import { CustomerDashboardView } from './views/CustomerDashboardView';
 import { FreeToolsView } from './views/FreeToolsView';
 import { CustomDesignView } from './views/CustomDesignView';
 import { PricingView } from './views/PricingView';
-import { DesignerPortalView } from './views/DesignerPortalView';
 import { AdminDashboardView } from './views/AdminDashboardView';
 import { AboutView } from './views/AboutView';
 import { ContactView } from './views/ContactView';
@@ -40,9 +39,6 @@ const MainContent: React.FC = () => {
       {currentView === 'tools' && <FreeToolsView />}
       {currentView === 'custom-design' && <CustomDesignView />}
       {currentView === 'pricing' && <PricingView />}
-      {(currentView === 'become-designer' || currentView === 'designer-dashboard') && (
-        <DesignerPortalView />
-      )}
       {currentView === 'admin-dashboard' && <AdminDashboardView />}
       {currentView === 'about' && <AboutView />}
       {currentView === 'contact' && <ContactView />}
