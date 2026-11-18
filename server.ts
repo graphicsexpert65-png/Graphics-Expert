@@ -1366,112 +1366,12 @@ async function startServer() {
     res.json({ orders: enriched });
   });
 
-  app.post('/api/orders', (req: AuthenticatedRequest, res) => {
-    // Never mark an order as paid or release paid files until a real payment provider is integrated.
-    res.status(503).json({ error: 'Online payments are not available yet. Please contact Graphics Expert to place an order.' });
-    return;
-
-    const { items, customerName, customerEmail, customerCountry, paymentMethod, couponCode } = req.body || {};
-    if (!Array.isArray(items) || items.length === 0) {
-      res.status(400).json({ error: 'Cart is empty.' });
-      return;
-    }
-    if (!customerName || !customerEmail) {
-      res.status(400).json({ error: 'Customer name and email are required.' });
-      return;
-    }
-
-    const db = loadDb();
-    const orderId = 'ORD-' + Math.floor(10000 + Math.random() * 90000);
-    const userId = req.authUser?.id || `guest_${String(customerEmail).toLowerCase()}`;
-
-    let subtotal = 0;
-    const orderItems: StoredOrder['items'] = [];
-
-    for (const cartEntry of items) {
-      const prod = db.products.find(
-        (p) => p.id === cartEntry.productId && p.status === 'published'
-      );
-      if (!prod) {
-        res.status(400).json({ error: `Product "${cartEntry.productId}" is unavailable for purchase.` });
-        return;
-      }
-      const license = (['Personal', 'Commercial', 'Extended Commercial'].includes(cartEntry.license)
-        ? cartEntry.license
-        : 'Commercial') as StoredOrder['items'][number]['license'];
-      const basePrice = prod.discountPrice ?? prod.price;
-      const computedPrice = Number((license === 'Extended Commercial' ? basePrice * 2.5 : basePrice).toFixed(2));
-      subtotal += computedPrice;
-
-      const itemId = 'item_' + crypto.randomUUID().slice(0, 8);
-      const { token, expiresAt } = issueDownloadToken(orderId, itemId, prod.id, userId);
-
-      orderItems.push({
-        id: itemId,
-        productId: prod.id,
-        productTitle: prod.title,
-        productThumbnail: prod.previewUrl,
-        price: computedPrice,
-        license,
-        downloadToken: token,
-        downloadExpiresAt: expiresAt,
-      });
-    }
-
-    subtotal = Number(subtotal.toFixed(2));
-    let discount = 0;
-    let appliedCode: string | undefined;
-
-    if (couponCode) {
-      const found = db.coupons.find(
-        (c) => c.code.toUpperCase() === String(couponCode).trim().toUpperCase() && c.active
-      );
-      if (found && subtotal >= found.minOrder) {
-        discount =
-          found.discountType === 'percentage'
-            ? Number(((subtotal * found.value) / 100).toFixed(2))
-            : Math.min(found.value, subtotal);
-        appliedCode = found.code;
-      }
-    }
-
-    const total = Number(Math.max(0, subtotal - discount).toFixed(2));
-    const newOrder: StoredOrder = {
-      id: orderId,
-      userId,
-      customerName: String(customerName).trim(),
-      customerEmail: String(customerEmail).trim().toLowerCase(),
-      customerCountry: String(customerCountry || 'Pakistan').trim(),
-      items: orderItems,
-      subtotal,
-      discount,
-      total,
-      couponCode: appliedCode,
-      paymentMethod: String(paymentMethod || 'Demo Checkout (Simulated)'),
-      paymentStatus: 'completed',
-      isDemoOrder: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    db.orders.unshift(newOrder);
-    saveDb(db);
-
-    const enrichedOrder = {
-      ...newOrder,
-      items: newOrder.items.map((item) => {
-        const prod = db.products.find((p) => p.id === item.productId);
-        return {
-          ...item,
-          files: prod
-            ? prod.files
-                .filter((f) => f.includedInPackage)
-                .map(({ storageKey: _removed, ...rest }) => rest)
-            : [],
-        };
-      }),
-    };
-
-    res.status(201).json({ order: enrichedOrder });
+  app.post('/api/orders', (_req: AuthenticatedRequest, res) => {
+    // Payment provider integration is not configured. Never create a completed order
+    // or issue download tokens until a verified payment callback is implemented.
+    res.status(503).json({
+      error: 'Online payments are not available yet. Please contact Graphics Expert to place an order.',
+    });
   });
 
   app.post('/api/orders/:orderId/items/:itemId/refresh-token', requireAuth, (req: AuthenticatedRequest, res) => {
