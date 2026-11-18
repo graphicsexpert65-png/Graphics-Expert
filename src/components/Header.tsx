@@ -47,7 +47,6 @@ export const Header: React.FC = () => {
     { label: 'Free Tools', view: 'tools' as const },
     { label: 'Custom Design', view: 'custom-design' as const },
     { label: 'Pricing', view: 'pricing' as const },
-    { label: 'Become a Designer', view: 'become-designer' as const },
   ];
 
   return (
