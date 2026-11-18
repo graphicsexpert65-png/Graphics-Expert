@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import { DemoSwitcherBar } from './components/DemoSwitcherBar';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ToastContainer } from './components/ToastContainer';
@@ -57,7 +56,6 @@ export default function App() {
   return (
     <AppProvider>
       <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
-        <DemoSwitcherBar />
         <Header />
         <MainContent />
         <Footer />
