@@ -55,29 +55,29 @@ export const HomeView: React.FC = () => {
   return (
     <div className="space-y-16 lg:space-y-24 pb-16">
       {/* 1. HERO SECTION */}
-      <section className="pt-8 sm:pt-14 pb-12 bg-gradient-to-b from-slate-100/70 via-slate-50 to-white border-b border-slate-200/70">
+      <section className="relative isolate overflow-hidden pt-10 sm:pt-16 pb-14 bg-[#f3f5f9] border-b border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Copy */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg px-3 py-1.5 shadow-xs">
+            <div className="lg:col-span-7 space-y-6 relative z-10">
+              <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wide text-slate-700 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                 <span>GRAPHICS EXPERT · Creative Designs. Professional Tools.</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] tracking-tight font-display text-balance leading-[1.1]">
-                Creative Designs. Professional Tools.
+              <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-extrabold text-[#0F172A] tracking-[-0.045em] font-display text-balance leading-[1.04] max-w-3xl">
+                Design smarter.\nCreate without limits.
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed">
-                Original editable CorelDRAW (.CDR), Illustrator (.AI/.EPS), and Photoshop (.PSD/.PSB) templates paired with free browser-based design utilities and custom design services.
+              <p className="text-base sm:text-lg text-slate-600 max-w-xl leading-8">
+                Discover editable print-ready templates, practical browser tools, and custom graphic design services—all in one creative workspace.
               </p>
 
               {/* CTAs */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => setCurrentView('marketplace')}
-                  className="px-6 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-sm font-semibold shadow-md transition-all flex items-center gap-2"
+                  className="px-6 py-3.5 bg-[#0F172A] hover:bg-blue-950 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/15 transition-all flex items-center gap-2 hover:-translate-y-0.5"
                 >
                   <span>Explore Marketplace</span>
                   <ArrowRight className="w-4 h-4" />
@@ -85,7 +85,7 @@ export const HomeView: React.FC = () => {
 
                 <button
                   onClick={() => setCurrentView('tools')}
-                  className="px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl text-sm font-semibold transition-all shadow-xs"
+                  className="px-6 py-3.5 bg-white hover:bg-white text-slate-800 border border-slate-300 rounded-xl text-sm font-bold transition-all shadow-sm hover:-translate-y-0.5"
                 >
                   Try Free Tools
                 </button>
@@ -119,11 +119,11 @@ export const HomeView: React.FC = () => {
             </div>
 
             {/* Right Studio Architecture Showcase */}
-            <div className="lg:col-span-5">
-              <div className="rounded-2xl bg-[#0F172A] text-white border border-slate-800 shadow-2xl p-6 space-y-5">
+            <div className="lg:col-span-5 relative z-10">
+              <div className="rounded-[1.75rem] bg-[#101b32] text-white border border-slate-700/70 shadow-[0_30px_80px_-25px_rgba(15,23,42,0.55)] p-6 sm:p-7 space-y-5 relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-400">
                       Multi-Format Digital Studio
                     </p>
                     <h2 className="text-lg font-bold font-display mt-0.5">
@@ -134,22 +134,22 @@ export const HomeView: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/80">
+                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
                     <span className="font-mono font-bold text-amber-400">.CDR</span>
                     <p className="font-semibold text-white mt-1">CorelDRAW</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Panaflex, Wedding & Visiting Cards</p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/80">
+                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
                     <span className="font-mono font-bold text-orange-400">.AI / .EPS</span>
                     <p className="font-semibold text-white mt-1">Adobe Illustrator</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Scalable Press & Brand Vectors</p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/80">
+                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
                     <span className="font-mono font-bold text-sky-400">.PSD / .PSB</span>
                     <p className="font-semibold text-white mt-1">Adobe Photoshop</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Smart Object Print & Social Kits</p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/80">
+                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
                     <span className="font-mono font-bold text-emerald-400">.PDF / .TIFF / .ZIP</span>
                     <p className="font-semibold text-white mt-1">Print & Bundles</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Multi-format Press Archives</p>
@@ -173,6 +173,24 @@ export const HomeView: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-5 relative z-20">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { value: 'Editable source files', label: 'Keep control of your designs', icon: <Layers className="w-5 h-5" /> },
+            { value: 'Print-ready quality', label: 'CMYK, dimensions & 300 DPI', icon: <Printer className="w-5 h-5" /> },
+            { value: 'Free browser tools', label: 'Useful utilities, right in your browser', icon: <Sparkles className="w-5 h-5" /> },
+          ].map((item) => (
+            <div key={item.value} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <span className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">{item.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-slate-900">{item.value}</span>
+                <span className="block text-xs text-slate-500 mt-0.5">{item.label}</span>
+              </span>
+            </div>
+          ))}
         </div>
       </section>
 
