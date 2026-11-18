@@ -299,7 +299,7 @@ export const HomeView: React.FC = () => {
 
       {/* 4. CORELDRAW SPOTLIGHT BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-[#0F172A] text-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-slate-700 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-[#0F172A] text-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-slate-700 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
           <div className="space-y-3 z-10 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0F172A]/20 text-slate-200 text-xs font-semibold uppercase tracking-wider border border-slate-700">
               <span className="w-2 h-2 rounded-full bg-white"></span>
