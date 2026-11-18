@@ -66,7 +66,7 @@ export const HomeView: React.FC = () => {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-extrabold text-[#0F172A] tracking-[-0.045em] font-display text-balance leading-[1.04] max-w-3xl">
-                Design smarter.\nCreate without limits.
+                Design smarter. <span className="text-blue-700">Create without limits.</span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 max-w-xl leading-8">
