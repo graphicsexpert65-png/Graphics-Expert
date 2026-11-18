@@ -562,7 +562,7 @@ async function startServer() {
       privateStoragePath: 'storage/private/designs (protected, non-public)',
       publicPreviewPath: 'storage/public/previews',
       persistentDiskActive: true,
-      demoCheckoutEnabled: true,
+      demoCheckoutEnabled: false,
       s3Configured,
     });
   });
