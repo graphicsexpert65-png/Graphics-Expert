@@ -74,7 +74,7 @@ export const Header: React.FC = () => {
                   strokeLinejoin="round"
                   fill="none"
                 />
-                <circle cx="46" cy="18" r="4.5" fill="#F59E0B" />
+                <circle cx="46" cy="18" r="4.5" fill="#FFFFFF" />
               </svg>
               <span className="font-display font-extrabold text-lg sm:text-xl tracking-tight text-[#0F172A] group-hover:text-blue-600 transition-colors whitespace-nowrap">
                 GRAPHICS EXPERT
@@ -205,7 +205,7 @@ export const Header: React.FC = () => {
                           setCurrentView('admin-dashboard');
                           setIsUserDropdownOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-left text-amber-700 hover:bg-amber-50 flex items-center gap-2 font-medium"
+                        className="w-full px-4 py-2 text-left text-slate-800 hover:bg-slate-100 flex items-center gap-2 font-medium"
                       >
                         <Shield className="w-3.5 h-3.5" />
                         Admin Operations Center
@@ -310,7 +310,7 @@ export const Header: React.FC = () => {
                         setCurrentView('admin-dashboard');
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full text-left py-2 text-sm font-medium text-amber-700"
+                      className="w-full text-left py-2 text-sm font-medium text-slate-800"
                     >
                       Admin Operations
                     </button>
