@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: graphics-expert
+    runtime: node
+    plan: starter
+    region: singapore
+    branch: deployment-setup
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: graphics-expert-data
+      mountPath: /opt/render/project/src/storage
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "250"
+      - key: ADMIN_EMAIL
+        value: graphicsexpert65@gmail.com
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DOWNLOAD_TOKEN_SECRET
+        generateValue: true
+      - key: ALLOW_DEMO_AUTH
+        value: "false"
