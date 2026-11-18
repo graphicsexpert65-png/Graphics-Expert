@@ -172,7 +172,7 @@ export const CheckoutView: React.FC = () => {
         </div>
 
         <div className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 self-start sm:self-auto">
-          DEMO CHECKOUT ACTIVE
+          PAYMENTS NOT CONNECTED
         </div>
       </div>
 
@@ -347,13 +347,16 @@ export const CheckoutView: React.FC = () => {
             </div>
           </div>
 
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            Online payment is not connected yet. Checkout and paid downloads will be enabled after a secure payment gateway is configured.
+          </div>
           <button
             type="submit"
-            disabled={isProcessing}
-            className="w-full py-3.5 px-4 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
+            disabled
+            className="w-full py-3.5 px-4 bg-slate-300 text-slate-600 rounded-xl text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-2"
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>{isProcessing ? 'Authorizing Demo Payment...' : `Pay $${cartTotal.toFixed(2)} & Download`}</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>Payments Coming Soon</span>
           </button>
         </div>
 
