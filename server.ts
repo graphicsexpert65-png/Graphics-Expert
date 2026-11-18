@@ -18,7 +18,7 @@ const MAX_FILE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER || 'local';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'graphicsexpert65@gmail.com').toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-const ALLOW_DEMO_AUTH = process.env.ALLOW_DEMO_AUTH !== 'false';
+const ALLOW_DEMO_AUTH = process.env.ALLOW_DEMO_AUTH === 'true';
 
 // Storage Directories
 const STORAGE_ROOT = path.resolve(__dirname, 'storage');
@@ -584,7 +584,7 @@ async function startServer() {
     }
 
     const { hash, salt } = hashPassword(String(password));
-    const safeRole = role === 'designer' ? 'designer' : 'customer';
+    const safeRole = 'customer';
     const newUser: StoredUser = {
       id: 'usr_' + crypto.randomUUID().slice(0, 8),
       name: String(name).trim(),
@@ -620,11 +620,9 @@ async function startServer() {
     }
 
     if (user.role === 'admin') {
-      if (ADMIN_PASSWORD) {
-        if (String(password) !== ADMIN_PASSWORD) {
-          res.status(401).json({ error: 'Invalid administrator credentials.' });
-          return;
-        }
+      if (!ADMIN_PASSWORD || String(password) !== ADMIN_PASSWORD) {
+        res.status(401).json({ error: 'Administrator password is not configured or is incorrect.' });
+        return;
       }
     } else if (user.passwordHash && user.passwordSalt) {
       const { hash } = hashPassword(String(password), user.passwordSalt);
@@ -1745,7 +1743,7 @@ async function startServer() {
     res.json({ submissions: list });
   });
 
-  app.post('/api/designer-submissions', requireAuth, (req: AuthenticatedRequest, res) => {
+  app.post('/api/designer-submissions', requireAdmin, (req: AuthenticatedRequest, res) => {
     const { title, category, price, fileFormats, dimensions, previewUrl } = req.body || {};
     const db = loadDb();
     const newSub: StoredDesignerSubmission = {
