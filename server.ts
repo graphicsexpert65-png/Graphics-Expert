@@ -18,7 +18,7 @@ const MAX_FILE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER || 'local';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'graphicsexpert65@gmail.com').toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-const ALLOW_DEMO_AUTH = process.env.ALLOW_DEMO_AUTH !== 'false';
+const ALLOW_DEMO_AUTH = process.env.ALLOW_DEMO_AUTH === 'true';
 
 // Storage Directories
 const STORAGE_ROOT = path.resolve(__dirname, 'storage');
@@ -620,11 +620,13 @@ async function startServer() {
     }
 
     if (user.role === 'admin') {
-      if (ADMIN_PASSWORD) {
-        if (String(password) !== ADMIN_PASSWORD) {
-          res.status(401).json({ error: 'Invalid administrator credentials.' });
-          return;
-        }
+      if (!ADMIN_PASSWORD) {
+        res.status(503).json({ error: 'Administrator login is not configured. Set the ADMIN_PASSWORD secret before signing in.' });
+        return;
+      }
+      if (String(password) !== ADMIN_PASSWORD) {
+        res.status(401).json({ error: 'Invalid administrator credentials.' });
+        return;
       }
     } else if (user.passwordHash && user.passwordSalt) {
       const { hash } = hashPassword(String(password), user.passwordSalt);
