@@ -107,7 +107,6 @@ function formatFileSize(bytes: number): string {
 export const AdminDashboardView: React.FC = () => {
   const {
     currentUser,
-    switchRole,
     openAuthModal,
     adminProducts,
     categories,
@@ -543,7 +542,7 @@ export const AdminDashboardView: React.FC = () => {
             Graphics Expert Administrator Access Required
           </h1>
           <p className="text-xs text-slate-600 leading-relaxed">
-            Sign in with your administrator credentials (<span className="font-mono">graphicsexpert65@gmail.com</span>) or activate Admin Studio preview mode to upload designs and manage files.
+            Sign in with the owner administrator account to upload designs and manage the marketplace.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
@@ -551,12 +550,6 @@ export const AdminDashboardView: React.FC = () => {
               className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs font-semibold"
             >
               Admin Sign In
-            </button>
-            <button
-              onClick={() => switchRole('admin')}
-              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold"
-            >
-              Enter Admin Studio
             </button>
           </div>
         </div>
