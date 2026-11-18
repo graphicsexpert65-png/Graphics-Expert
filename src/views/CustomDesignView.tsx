@@ -16,6 +16,7 @@ export const CustomDesignView: React.FC = () => {
   const [referenceFile, setReferenceFile] = useState<string | null>(null);
 
   const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +32,10 @@ export const CustomDesignView: React.FC = () => {
       referenceFileName: referenceFile || undefined,
     });
     if (id) {
+      setSubmissionError(false);
       setSubmittedRequestId(id);
+    } else {
+      setSubmissionError(true);
     }
   };
 
@@ -106,6 +110,18 @@ export const CustomDesignView: React.FC = () => {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            {submissionError && (
+              <div role="alert" className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-slate-800 space-y-2">
+                <p className="font-semibold">Online submission is temporarily unavailable.</p>
+                <p>The preview website is not connected to its request-saving service yet. Your details are still here; use the email option below so you can send this brief without retyping it.</p>
+                <a
+                  className="inline-flex items-center rounded-lg bg-[#0F172A] px-4 py-2 text-white font-semibold hover:bg-slate-800"
+                  href={`mailto:graphicsexpert65@gmail.com?subject=${encodeURIComponent(`Graphics Expert design request: ${designType}`)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDesign category: ${designType}\nRequired size: ${requiredSize}\nDescription: ${description}\nDeadline: ${deadline}\nBudget: ${budget}\nReference file: ${referenceFile || 'Not attached'}\n`)}`}
+                >
+                  Email this design brief
+                </a>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Your Name *</label>
