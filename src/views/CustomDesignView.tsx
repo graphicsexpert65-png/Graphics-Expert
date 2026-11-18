@@ -11,7 +11,7 @@ export const CustomDesignView: React.FC = () => {
   const [designType, setDesignType] = useState('Logo');
   const [requiredSize, setRequiredSize] = useState('Standard Vector & Print Dimensions');
   const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('2026-10-15');
+  const [deadline, setDeadline] = useState(new Date().toISOString().slice(0, 10));
   const [budget, setBudget] = useState('Rs. 5,000 (~$50)');
   const [referenceFile, setReferenceFile] = useState<string | null>(null);
 
@@ -278,9 +278,9 @@ export const CustomDesignView: React.FC = () => {
               ))}
             </div>
 
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
+            <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700 space-y-1">
               <p><strong>Note on Custom Pricing:</strong> Prices listed above represent starting tier estimates. Complex multi-page menus or custom hand-drawn calligraphy will receive a bespoke quotation.</p>
-              <p className="pt-1 border-t border-amber-200/60 text-amber-950 font-medium">✓ <strong>CorelDraw Press Files:</strong> All flex banners, wedding cards, and stationery are delivered with native editable .CDR files + converted curves (Ctrl+Q) ready for local offset & solvent printing.</p>
+              <p className="pt-1 border-t border-slate-200/60 text-slate-900 font-medium">✓ <strong>CorelDraw Press Files:</strong> All flex banners, wedding cards, and stationery are delivered with native editable .CDR files + converted curves (Ctrl+Q) ready for local offset & solvent printing.</p>
             </div>
           </div>
         </div>
