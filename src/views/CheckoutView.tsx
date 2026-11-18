@@ -171,7 +171,7 @@ export const CheckoutView: React.FC = () => {
           </p>
         </div>
 
-        <div className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 self-start sm:self-auto">
+        <div className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 self-start sm:self-auto">
           PAYMENTS NOT CONNECTED
         </div>
       </div>
@@ -222,8 +222,8 @@ export const CheckoutView: React.FC = () => {
           {/* Payment Method Selector */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-900 font-display">2. Payment Method (Demo Gateway)</h2>
-              <span className="text-[11px] text-slate-500">No real funds charged</span>
+              <h2 className="text-sm font-bold text-slate-900 font-display">2. Payment Setup</h2>
+              <span className="text-[11px] text-slate-500">Gateway not configured</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
