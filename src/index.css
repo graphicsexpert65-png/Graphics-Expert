@@ -1,39 +1,43 @@
 @import "tailwindcss";
 
+/* Graphics Expert — consistent premium navy identity */
 :root {
   color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --brand-navy: #17365D;
+  --brand-navy-deep: #0B1F3A;
+  --brand-navy-soft: #EAF0F8;
+  --brand-ink: #10233F;
 }
 
 @layer base {
-  html {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
   body {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    color: var(--brand-ink);
+    background: #F7F9FC;
   }
-
   h1, h2, h3, h4, h5, h6, .font-display {
-    font-family: 'Plus Jakarta Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    letter-spacing: -0.02em;
-    font-weight: 700;
+    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.025em;
+    font-weight: 750;
   }
-
-  button, input, textarea, select {
-    font: inherit;
-  }
-
-  button {
-    -webkit-tap-highlight-color: transparent;
-  }
+  button, input, textarea, select { font: inherit; }
+  button { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 3px solid rgba(35, 78, 130, .35); outline-offset: 2px; }
 }
 
-/* Consistent navy-and-white visual system */
-:root { --brand-navy: #142B4A; --brand-navy-deep: #0B1B32; }
-::selection { background: #142B4A; color: #fff; }
+::selection { background: #17365D; color: #fff; }
 a, button { -webkit-tap-highlight-color: transparent; }
+
+/* Retire legacy orange utility classes throughout older screens. */
+[class*="bg-orange-"], [class*="bg-amber-"] { background-color: #17365D !important; }
+[class*="text-orange-"], [class*="text-amber-"] { color: #17365D !important; }
+[class*="border-orange-"], [class*="border-amber-"] { border-color: #C7D4E5 !important; }
+[class*="ring-orange-"], [class*="ring-amber-"] { --tw-ring-color: #17365D !important; }
+[class*="from-orange-"], [class*="from-amber-"] { --tw-gradient-from: #17365D var(--tw-gradient-from-position) !important; }
+[class*="to-orange-"], [class*="to-amber-"] { --tw-gradient-to: #0B1F3A var(--tw-gradient-to-position) !important; }
