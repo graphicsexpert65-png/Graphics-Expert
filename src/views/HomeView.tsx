@@ -93,7 +93,7 @@ export const HomeView: React.FC = () => {
                 {currentUser?.role === 'admin' && (
                   <button
                     onClick={() => setCurrentView('admin-dashboard')}
-                    className="px-5 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2"
+                    className="px-5 py-3.5 bg-[#142B4A] hover:bg-[#0B1B32] text-white rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2"
                   >
                     <Upload className="w-4 h-4" />
                     <span>Upload Design</span>
