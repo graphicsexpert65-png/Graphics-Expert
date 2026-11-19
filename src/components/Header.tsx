@@ -76,7 +76,7 @@ export const Header: React.FC = () => {
                 />
                 <circle cx="46" cy="18" r="4.5" fill="#FFFFFF" />
               </svg>
-              <span className="font-display font-extrabold text-lg sm:text-xl tracking-tight text-[#0F172A] group-hover:text-blue-600 transition-colors whitespace-nowrap">
+              <span className="font-display font-bold text-lg sm:text-xl tracking-[0.015em] text-[#142B4A] group-hover:text-[#27496F] transition-colors whitespace-nowrap">
                 GRAPHICS EXPERT
               </span>
             </button>
