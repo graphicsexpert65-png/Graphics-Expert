@@ -65,8 +65,8 @@ export const HomeView: React.FC = () => {
                 <span>GRAPHICS EXPERT · Creative Designs. Professional Tools.</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-extrabold text-[#0F172A] tracking-[-0.045em] font-display text-balance leading-[1.04] max-w-3xl">
-                Design smarter. <span className="text-blue-700">Create without limits.</span>
+              <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-bold text-[#0F172A] tracking-[-0.025em] font-display text-balance leading-[1.04] max-w-3xl">
+                Design smarter. <span className="text-[#142B4A]">Create without limits.</span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 max-w-xl leading-8">
@@ -108,7 +108,7 @@ export const HomeView: React.FC = () => {
                   <span>Original Unflattened Source Files</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Download className="w-4 h-4 text-blue-600" />
+                  <Download className="w-4 h-4 text-[#142B4A]" />
                   <span>Protected Signed Downloads</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -207,7 +207,7 @@ export const HomeView: React.FC = () => {
           </div>
           <button
             onClick={() => setCurrentView('marketplace')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-semibold text-[#142B4A] hover:text-[#142B4A] flex items-center gap-1 self-start sm:self-auto"
           >
             <span>Browse All Categories</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -225,7 +225,7 @@ export const HomeView: React.FC = () => {
                 {getCategoryIcon(cat.iconName)}
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                <h3 className="text-xs font-bold text-slate-900 group-hover:text-[#142B4A] transition-colors line-clamp-1">
                   {cat.name}
                 </h3>
                 <span className="text-[11px] text-slate-400 tabular-nums">
@@ -250,7 +250,7 @@ export const HomeView: React.FC = () => {
           </div>
           <button
             onClick={() => setCurrentView('marketplace')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 self-start sm:self-auto"
+            className="text-xs font-semibold text-[#142B4A] hover:text-[#142B4A] flex items-center gap-1 self-start sm:self-auto"
           >
             <span>View Full Marketplace</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -316,7 +316,7 @@ export const HomeView: React.FC = () => {
           <div className="z-10 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
             <button
               onClick={() => setCurrentView('marketplace')}
-              className="px-6 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2"
+              className="px-6 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2"
             >
               <span>Browse Marketplace</span>
               <ArrowRight className="w-4 h-4" />
@@ -349,7 +349,7 @@ export const HomeView: React.FC = () => {
               <div className="pt-2 flex flex-wrap gap-3">
                 <button
                   onClick={() => setCurrentView('tools', { toolId: 'resizer' })}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-colors"
+                  className="px-5 py-2.5 bg-[#142B4A] hover:bg-[#27496F] text-white rounded-lg text-xs font-semibold transition-colors"
                 >
                   Open Image Resizer
                 </button>
@@ -394,7 +394,7 @@ export const HomeView: React.FC = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl border border-slate-200/90 p-8 sm:p-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="max-w-2xl space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#142B4A]">
               Custom Graphic Design Services
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display">
