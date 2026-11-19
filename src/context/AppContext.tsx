@@ -636,7 +636,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addToast('Request Submitted!', `Your request #${data.customRequest.id} was sent to Graphics Expert.`, 'success');
       return data.customRequest.id as string;
     } catch {
-      addToast('Network Error', 'Failed to submit design brief.', 'error');
+      addToast(
+        'Online request service unavailable',
+        'This Cloudflare Pages deployment has no connected request API. Your form details remain on screen; use the email option shown below to send the brief.',
+        'error'
+      );
       return null;
     }
   };
