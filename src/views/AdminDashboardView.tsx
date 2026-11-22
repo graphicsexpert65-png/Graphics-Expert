@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Product, ProductStatus, LicenseType } from '../types';
+import { Category, Product, ProductStatus, LicenseType } from '../types';
 import {
   Shield,
   Plus,
@@ -23,7 +23,14 @@ import {
   X,
   ArrowLeft,
   FolderPlus,
+  Download,
+  KeyRound,
+  Inbox,
+  LayoutDashboard,
+  Layers,
+  LogOut,
 } from 'lucide-react';
+import { AdminLoginForm } from '../components/AdminLoginForm';
 
 interface StagedNewFile {
   localId: string;
@@ -58,12 +65,21 @@ const ALLOWED_EXTENSIONS = [
   '.png',
   '.jpg',
   '.jpeg',
+  '.svg',
   '.tif',
   '.tiff',
   '.zip',
 ];
 
-const NON_BROWSER_FORMATS = new Set(['CDR', 'AI', 'EPS', 'PSD', 'PSB', 'TIF', 'TIFF', 'ZIP', 'PDF']);
+// Formats browsers cannot preview reliably: a separate preview image is required for these.
+const NON_BROWSER_FORMATS = new Set(['CDR', 'AI', 'EPS', 'PSD', 'PSB', 'TIF', 'TIFF', 'ZIP', 'PDF', 'SVG']);
+
+type AdminTab = 'overview' | 'designs' | 'upload' | 'categories' | 'requests' | 'settings';
+
+const CATEGORY_ICONS = [
+  'Layers', 'PenTool', 'Image', 'Sparkles', 'CreditCard', 'HeartHandshake', 'UtensilsCrossed', 'Flag',
+  'Maximize2', 'FileText', 'Receipt', 'BookOpen', 'Moon', 'Share2',
+];
 
 const SOFTWARE_PRESETS = [
   'CorelDRAW X7–2024',
@@ -107,31 +123,43 @@ function formatFileSize(bytes: number): string {
 export const AdminDashboardView: React.FC = () => {
   const {
     currentUser,
-    switchRole,
-    openAuthModal,
+    logout,
     adminProducts,
+    adminStats,
     categories,
-    orders,
     customRequests,
-    designerSubmissions,
-    coupons,
     storageStatus,
     uploadNewDesign,
     updateAdminDesign,
     updateProductStatus,
     duplicateProduct,
     deleteProduct,
+    createCategory,
+    updateCategory,
+    deleteCategory,
     updateCustomRequestStatus,
-    updateDesignerSubmissionStatus,
-    createCoupon,
-    deleteCoupon,
+    deleteCustomRequest,
+    downloadBriefReference,
+    changePassword,
+    refreshAdminData,
     setCurrentView,
     addToast,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<
-    'designs' | 'upload' | 'orders' | 'requests' | 'submissions' | 'coupons' | 'storage'
-  >('designs');
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+
+  // Category form state
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [catName, setCatName] = useState('');
+  const [catDescription, setCatDescription] = useState('');
+  const [catIcon, setCatIcon] = useState('Layers');
+  const [confirmDeleteCategoryId, setConfirmDeleteCategoryId] = useState<string | null>(null);
+  const [confirmDeleteBriefId, setConfirmDeleteBriefId] = useState<string | null>(null);
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   // My Designs filters
   const [designSearch, setDesignSearch] = useState('');
@@ -145,7 +173,7 @@ export const AdminDashboardView: React.FC = () => {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState(categories[0]?.id || 'coreldraw-designs');
   const [subcategory, setSubcategory] = useState('');
-  const [price, setPrice] = useState<string>('12.00');
+  const [price, setPrice] = useState<string>('0');
   const [discountPrice, setDiscountPrice] = useState<string>('');
   const [dimensions, setDimensions] = useState('8.5 × 11 in + 0.125 in Bleed');
   const [colorMode, setColorMode] = useState<'CMYK' | 'RGB'>('CMYK');
@@ -154,8 +182,8 @@ export const AdminDashboardView: React.FC = () => {
   const [customSoftwareInput, setCustomSoftwareInput] = useState('');
   const [license, setLicense] = useState<LicenseType>('Commercial');
   const [tagsInput, setTagsInput] = useState('');
-  const [featured, setFeatured] = useState<boolean>(true);
-  const [status, setStatus] = useState<ProductStatus>('published');
+  const [featured, setFeatured] = useState<boolean>(false);
+  const [status, setStatus] = useState<ProductStatus>('draft');
 
   // Preview images
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -171,13 +199,6 @@ export const AdminDashboardView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Coupon form state
-  const [newCouponCode, setNewCouponCode] = useState('');
-  const [newCouponType, setNewCouponType] = useState<'percentage' | 'fixed'>('percentage');
-  const [newCouponValue, setNewCouponValue] = useState<string>('15');
-  const [newCouponMinOrder, setNewCouponMinOrder] = useState<string>('0');
-  const [newCouponExpiry, setNewCouponExpiry] = useState('2027-12-31');
-
   const maxUploadMb = storageStatus?.maxUploadSizeMb || 250;
 
   const resetForm = () => {
@@ -187,7 +208,7 @@ export const AdminDashboardView: React.FC = () => {
     setDescription('');
     setCategoryId(categories[0]?.id || 'coreldraw-designs');
     setSubcategory('');
-    setPrice('12.00');
+    setPrice('0');
     setDiscountPrice('');
     setDimensions('8.5 × 11 in + 0.125 in Bleed');
     setColorMode('CMYK');
@@ -196,8 +217,8 @@ export const AdminDashboardView: React.FC = () => {
     setCustomSoftwareInput('');
     setLicense('Commercial');
     setTagsInput('');
-    setFeatured(true);
-    setStatus('published');
+    setFeatured(false);
+    setStatus('draft');
     setCoverFile(null);
     setCoverPreviewDataUrl(null);
     setGalleryFiles([]);
@@ -350,13 +371,13 @@ export const AdminDashboardView: React.FC = () => {
     }
     const parsedPrice = parseFloat(price);
     if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
-      setFormError('Please enter a valid selling price.');
+      setFormError('Please enter a valid price (use 0 for a free design).');
       return;
     }
     if (discountPrice.trim()) {
       const parsedDiscount = parseFloat(discountPrice);
       if (Number.isNaN(parsedDiscount) || parsedDiscount < 0 || parsedDiscount >= parsedPrice) {
-        setFormError('Discount price must be lower than the selling price.');
+        setFormError('Discount price must be lower than the price.');
         return;
       }
     }
@@ -513,139 +534,237 @@ export const AdminDashboardView: React.FC = () => {
   const publishedCount = adminProducts.filter((p) => p.status === 'published').length;
   const draftCount = adminProducts.filter((p) => p.status === 'draft').length;
   const unpublishedCount = adminProducts.filter((p) => p.status === 'unpublished').length;
-  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
   const pendingRequests = customRequests.filter((r) => r.status === 'Pending' || r.status === 'In Review');
 
-  const handleCreateCoupon = async (e: React.FormEvent) => {
+  // ----- categories -----
+
+  const resetCategoryForm = () => {
+    setEditingCategoryId(null);
+    setCatName('');
+    setCatDescription('');
+    setCatIcon('Layers');
+  };
+
+  const startEditCategory = (c: Category) => {
+    setEditingCategoryId(c.id);
+    setCatName(c.name);
+    setCatDescription(c.description);
+    setCatIcon(c.iconName || 'Layers');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSubmitCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCouponCode.trim()) return;
-    const ok = await createCoupon({
-      code: newCouponCode.trim().toUpperCase(),
-      discountType: newCouponType,
-      value: parseFloat(newCouponValue) || 10,
-      minOrder: parseFloat(newCouponMinOrder) || 0,
-      expiry: newCouponExpiry,
-    });
-    if (ok) {
-      setNewCouponCode('');
+    if (!catName.trim()) return;
+    const input = { name: catName.trim(), description: catDescription.trim(), iconName: catIcon };
+    const ok = editingCategoryId ? await updateCategory(editingCategoryId, input) : await createCategory(input);
+    if (ok) resetCategoryForm();
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    await deleteCategory(id);
+    setConfirmDeleteCategoryId(null);
+  };
+
+  // ----- password -----
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+    if (newPassword.length < 12) {
+      setPasswordMessage({ ok: false, text: 'The new password must be at least 12 characters long.' });
+      return;
+    }
+    const res = await changePassword(currentPassword, newPassword);
+    if (res.success) {
+      setCurrentPassword('');
+      setNewPassword('');
+      setPasswordMessage({ ok: true, text: 'Password updated. Use the new password next time you sign in.' });
+    } else {
+      setPasswordMessage({ ok: false, text: res.error || 'Could not update the password.' });
     }
   };
 
-  // Admin Access Guard
+  // Admin Access Guard: the server enforces this too; the UI only avoids showing an empty dashboard.
   if (!currentUser || currentUser.role !== 'admin') {
     return (
-      <div className="py-16 px-4 max-w-xl mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-slate-900 text-amber-400 mx-auto flex items-center justify-center">
-            <Lock className="w-7 h-7" />
+      <div className="py-12 sm:py-16 px-4 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-5 shadow-sm">
+          <div className="text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-[#17365D] text-white mx-auto flex items-center justify-center">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h1 className="text-xl font-bold text-[#0B1F3A] font-display">Owner sign in</h1>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              This area is private. Only the Graphics Expert owner can sign in to upload and manage designs.
+            </p>
           </div>
-          <h1 className="text-xl font-bold text-slate-900 font-display">
-            Graphics Expert Administrator Access Required
-          </h1>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Sign in with your administrator credentials (<span className="font-mono">graphicsexpert65@gmail.com</span>) or activate Admin Studio preview mode to upload designs and manage files.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => openAuthModal('login')}
-              className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs font-semibold"
-            >
-              Admin Sign In
-            </button>
-            <button
-              onClick={() => switchRole('admin')}
-              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold"
-            >
-              Enter Admin Studio
-            </button>
-          </div>
+          <AdminLoginForm />
+          <button
+            onClick={() => setCurrentView('home')}
+            className="w-full text-sm text-slate-500 hover:text-[#17365D] font-medium"
+          >
+            ← Back to website
+          </button>
         </div>
       </div>
     );
   }
 
+  const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
+    { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'designs', label: `Designs (${adminProducts.length})`, icon: <FileCode2 className="w-4 h-4" /> },
+    { id: 'upload', label: editingProductId ? 'Edit design' : 'Upload design', icon: <Upload className="w-4 h-4" /> },
+    { id: 'categories', label: `Categories (${categories.length})`, icon: <Layers className="w-4 h-4" /> },
+    {
+      id: 'requests',
+      label: `Design briefs (${customRequests.length})`,
+      icon: <Inbox className="w-4 h-4" />,
+    },
+    { id: 'settings', label: 'Settings', icon: <KeyRound className="w-4 h-4" /> },
+  ];
+
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 min-h-[75vh]">
+    <div className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 min-h-[75vh]">
       {/* Admin Header */}
-      <div className="bg-[#0F172A] text-white rounded-2xl p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border border-slate-800">
-        <div>
+      <div className="bg-[#0B1F3A] text-white rounded-2xl p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-amber-400" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
-              GRAPHICS EXPERT · ADMIN STUDIO
+            <Shield className="w-4 h-4 text-sky-300" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300">
+              Graphics Expert · Owner dashboard
             </span>
           </div>
-          <h1 className="text-2xl font-bold font-display">Design Upload & Marketplace Operations</h1>
-          <p className="text-xs text-slate-300 mt-1">
-            Owner: <span className="font-mono text-white">{currentUser.email}</span> · Originals protected in private server storage; previews served publicly.
+          <h1 className="text-xl sm:text-2xl font-bold font-display">Design library &amp; client briefs</h1>
+          <p className="text-xs text-slate-300 mt-1 break-words">
+            Signed in as <span className="font-mono text-white">{currentUser.email}</span>. Original files stay in
+            private storage; only preview images are public.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={openNewUploadTab}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 bg-white hover:bg-slate-100 text-[#0B1F3A] rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            <span>Upload New Design</span>
+            <span>Upload new design</span>
           </button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <span className="text-slate-500 block mb-1">Total Designs</span>
-          <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">{adminProducts.length}</span>
-        </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <span className="text-slate-500 block mb-1">Published</span>
-          <span className="text-2xl font-bold text-emerald-600 font-mono tabular-nums">{publishedCount}</span>
-        </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <span className="text-slate-500 block mb-1">Draft / Hidden</span>
-          <span className="text-2xl font-bold text-amber-600 font-mono tabular-nums">
-            {draftCount + unpublishedCount}
-          </span>
-        </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <span className="text-slate-500 block mb-1">Total Orders</span>
-          <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">{orders.length}</span>
-        </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <span className="text-slate-500 block mb-1">Gross Revenue</span>
-          <span className="text-2xl font-bold text-emerald-600 font-mono tabular-nums">${totalRevenue.toFixed(2)}</span>
-        </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200">
-          <span className="text-slate-500 block mb-1">Custom Leads</span>
-          <span className="text-2xl font-bold text-blue-600 font-mono tabular-nums">{pendingRequests.length}</span>
+          <button
+            onClick={logout}
+            className="px-4 py-2.5 border border-white/30 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign out</span>
+          </button>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-slate-200 flex flex-wrap gap-5 text-xs font-semibold">
-        {[
-          { id: 'designs', label: `My Designs (${adminProducts.length})` },
-          { id: 'upload', label: editingProductId ? 'Edit Design Package' : 'Upload New Design' },
-          { id: 'orders', label: `Orders & Downloads (${orders.length})` },
-          { id: 'requests', label: `Custom Requests (${customRequests.length})` },
-          { id: 'submissions', label: `Designer Queue (${designerSubmissions.length})` },
-          { id: 'coupons', label: `Coupons (${coupons.length})` },
-          { id: 'storage', label: 'Storage & Environment' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className={`pb-3 transition-colors relative ${
-              activeTab === tab.id
-                ? 'text-slate-900 border-b-2 border-slate-900'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="border-b border-slate-200 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+        <div className="flex gap-5 text-xs font-semibold whitespace-nowrap min-w-max">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 flex items-center gap-1.5 transition-colors ${
+                activeTab === tab.id
+                  ? 'text-[#0B1F3A] border-b-2 border-[#17365D]'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* ================================================================ */}
+      {/* TAB: OVERVIEW                                                    */}
+      {/* ================================================================ */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            {[
+              { label: 'Published designs', value: adminStats?.published ?? publishedCount },
+              { label: 'Draft / hidden', value: adminStats?.drafts ?? draftCount + unpublishedCount },
+              { label: 'Categories', value: adminStats?.categories ?? categories.length },
+              { label: 'Design page views', value: adminStats?.totalViews ?? 0 },
+              { label: 'Pending briefs', value: adminStats?.pendingBriefs ?? pendingRequests.length },
+            ].map((kpi) => (
+              <div key={kpi.label} className="p-4 bg-white rounded-xl border border-slate-200">
+                <span className="text-slate-500 block mb-1">{kpi.label}</span>
+                <span className="text-2xl font-bold text-[#0B1F3A] font-mono tabular-nums">{kpi.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+                <h2 className="font-bold text-slate-900 text-sm">Recent uploads</h2>
+                <button onClick={() => setActiveTab('designs')} className="text-[#17365D] font-semibold hover:underline">
+                  View all
+                </button>
+              </div>
+              {!adminStats || adminStats.recentUploads.length === 0 ? (
+                <div className="p-8 text-center text-slate-500">
+                  No designs yet. Use “Upload new design” to add your first one.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {adminStats.recentUploads.map((u) => (
+                    <div key={u.id} className="p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">{u.title}</p>
+                        <p className="text-[11px] text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          u.status === 'published'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {u.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+                <h2 className="font-bold text-slate-900 text-sm">Latest design briefs</h2>
+                <button onClick={() => setActiveTab('requests')} className="text-[#17365D] font-semibold hover:underline">
+                  View all
+                </button>
+              </div>
+              {!adminStats || adminStats.recentBriefs.length === 0 ? (
+                <div className="p-8 text-center text-slate-500">No design briefs received yet.</div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {adminStats.recentBriefs.map((b) => (
+                    <div key={b.id} className="p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">
+                          {b.name} · {b.designType}
+                        </p>
+                        <p className="text-[11px] text-slate-500 truncate">{b.email}</p>
+                      </div>
+                      <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EAF0F8] text-[#17365D] border border-[#C7D4E5]">
+                        {b.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================================================================ */}
       {/* TAB 1: MANAGE MY DESIGNS                                         */}
@@ -661,7 +780,7 @@ export const AdminDashboardView: React.FC = () => {
                 Start Building Your Marketplace
               </h2>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Upload your first original design to begin selling.
+                Upload your first original design to publish it on the website.
               </p>
               <div className="pt-2">
                 <button
@@ -749,7 +868,7 @@ export const AdminDashboardView: React.FC = () => {
                             <span className="truncate">{p.title}</span>
                             {p.featured && (
                               <span title="Featured Design" className="inline-flex shrink-0">
-                                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                                <Star className="w-3.5 h-3.5 text-[#17365D] fill-[#17365D]" />
                               </span>
                             )}
                           </div>
@@ -772,6 +891,8 @@ export const AdminDashboardView: React.FC = () => {
                                 ${p.price.toFixed(2)}
                               </span>
                             </div>
+                          ) : p.price === 0 ? (
+                            <span className="font-bold text-emerald-700">Free</span>
                           ) : (
                             <span className="font-bold text-slate-900">${p.price.toFixed(2)}</span>
                           )}
@@ -785,7 +906,7 @@ export const AdminDashboardView: React.FC = () => {
                               p.status === 'published'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : p.status === 'draft'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                ? 'bg-slate-100 text-slate-700 border border-slate-200'
                                 : 'bg-slate-100 text-slate-600 border border-slate-200'
                             }`}
                           >
@@ -813,7 +934,7 @@ export const AdminDashboardView: React.FC = () => {
                             {p.status === 'published' ? (
                               <button
                                 onClick={() => updateProductStatus(p.id, 'unpublished')}
-                                className="px-2 py-1 rounded border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium"
+                                className="px-2 py-1 rounded border border-[#C7D4E5] bg-[#EAF0F8] hover:bg-[#DCE6F3] text-[#17365D] font-medium"
                               >
                                 Unpublish
                               </button>
@@ -910,7 +1031,7 @@ export const AdminDashboardView: React.FC = () => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-blue-600 hover:underline font-semibold"
+                className="text-[#17365D] hover:underline font-semibold"
               >
                 + Switch to New Upload
               </button>
@@ -1000,7 +1121,7 @@ export const AdminDashboardView: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Selling Price (USD) *</label>
+                    <label className="block font-semibold text-slate-700 mb-1">Price (USD) * <span className="font-normal text-slate-500">— enter 0 for a free design</span></label>
                     <input
                       type="number"
                       step="0.01"
@@ -1135,7 +1256,7 @@ export const AdminDashboardView: React.FC = () => {
                           onClick={() => setFeatured(opt.val)}
                           className={`flex-1 py-2 rounded-lg border font-semibold ${
                             featured === opt.val
-                              ? 'bg-amber-500 text-slate-950 border-amber-500'
+                              ? 'bg-[#17365D] text-white border-[#17365D]'
                               : 'bg-white text-slate-700 border-slate-200'
                           }`}
                         >
@@ -1170,7 +1291,7 @@ export const AdminDashboardView: React.FC = () => {
                     3. Public Preview Images
                   </h3>
                   {requiresPreviewImage && (
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#EAF0F8] text-[#17365D]">
                       Required for CDR/AI/PSD/ZIP
                     </span>
                   )}
@@ -1197,7 +1318,7 @@ export const AdminDashboardView: React.FC = () => {
                           alt="New Cover Preview"
                           className="w-full h-36 object-cover rounded-lg border border-slate-200"
                         />
-                        <span className="text-[11px] font-semibold text-blue-600 block">
+                        <span className="text-[11px] font-semibold text-[#17365D] block">
                           Click to replace cover image ({coverFile?.name})
                         </span>
                       </div>
@@ -1226,7 +1347,7 @@ export const AdminDashboardView: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="font-semibold text-slate-700">Additional Gallery Images</label>
-                    <label className="text-blue-600 hover:underline font-semibold cursor-pointer">
+                    <label className="text-[#17365D] hover:underline font-semibold cursor-pointer">
                       <input
                         type="file"
                         multiple
@@ -1256,7 +1377,7 @@ export const AdminDashboardView: React.FC = () => {
                         </div>
                       ))}
                       {galleryPreviewUrls.map((url, idx) => (
-                        <div key={`new-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-blue-400">
+                        <div key={`new-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-[#9FB4CF]">
                           <img src={url} alt="" className="w-full h-full object-cover" />
                           <button
                             type="button"
@@ -1279,7 +1400,7 @@ export const AdminDashboardView: React.FC = () => {
               <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
                 <div className="border-b border-slate-100 pb-2">
                   <h3 className="text-sm font-bold text-slate-900 font-display flex items-center gap-1.5">
-                    <FileCode2 className="w-4 h-4 text-amber-600" />
+                    <FileCode2 className="w-4 h-4 text-[#17365D]" />
                     <span>4. Protected Original Design Files</span>
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1288,7 +1409,7 @@ export const AdminDashboardView: React.FC = () => {
                 </div>
 
                 {/* File Drop / Add Trigger */}
-                <label className="block border-2 border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-50 rounded-xl p-4 text-center cursor-pointer transition-colors">
+                <label className="block border-2 border-dashed border-[#9FB4CF] bg-[#EAF0F8]/60 hover:bg-[#EAF0F8] rounded-xl p-4 text-center cursor-pointer transition-colors">
                   <input
                     type="file"
                     multiple
@@ -1296,7 +1417,7 @@ export const AdminDashboardView: React.FC = () => {
                     onChange={handleDesignFilesChange}
                     className="hidden"
                   />
-                  <FolderPlus className="w-6 h-6 text-amber-600 mx-auto mb-1" />
+                  <FolderPlus className="w-6 h-6 text-[#17365D] mx-auto mb-1" />
                   <p className="font-bold text-slate-900">
                     {editingProductId ? 'Add More Design Files to Package' : 'Upload Original Design Files'}
                   </p>
@@ -1327,7 +1448,7 @@ export const AdminDashboardView: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             {!ef.remove && (
-                              <label className="text-[11px] text-blue-600 hover:underline font-semibold cursor-pointer flex items-center gap-1">
+                              <label className="text-[11px] text-[#17365D] hover:underline font-semibold cursor-pointer flex items-center gap-1">
                                 <RefreshCw className="w-3 h-3" />
                                 Replace
                                 <input
@@ -1370,7 +1491,7 @@ export const AdminDashboardView: React.FC = () => {
                         </div>
 
                         {ef.replacementFile && !ef.remove && (
-                          <div className="text-[11px] text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200 flex items-center justify-between">
+                          <div className="text-[11px] text-[#17365D] bg-[#EAF0F8] px-2 py-1 rounded border border-[#C7D4E5] flex items-center justify-between">
                             <span>Replacing with: {ef.replacementFile.name}</span>
                             <button
                               type="button"
@@ -1471,7 +1592,7 @@ export const AdminDashboardView: React.FC = () => {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[10px] font-bold">
+                            <span className="px-1.5 py-0.5 rounded bg-[#17365D] text-white font-mono text-[10px] font-bold">
                               .{sf.format}
                             </span>
                             <span className="text-[11px] text-slate-500 font-mono">
@@ -1580,80 +1701,176 @@ export const AdminDashboardView: React.FC = () => {
       )}
 
       {/* ================================================================ */}
-      {/* TAB 3: ORDERS & DOWNLOADS                                        */}
+      {/* TAB: CATEGORIES                                                  */}
       {/* ================================================================ */}
-      {activeTab === 'orders' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden text-xs">
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900">Marketplace Orders & Signed Download Tokens</h3>
-            <span className="text-[11px] text-slate-500">Demo Checkout Mode</span>
-          </div>
-
-          {orders.length === 0 ? (
-            <div className="p-10 text-center text-slate-500">
-              No orders recorded yet. Real orders appear here once customers purchase published designs.
+      {activeTab === 'categories' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs items-start">
+          <form
+            onSubmit={handleSubmitCategory}
+            className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-4"
+          >
+            <h2 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
+              <FolderPlus className="w-4 h-4 text-[#17365D]" />
+              {editingCategoryId ? 'Edit category' : 'Add category'}
+            </h2>
+            <div>
+              <label htmlFor="cat-name" className="block font-semibold text-slate-700 mb-1">
+                Name *
+              </label>
+              <input
+                id="cat-name"
+                type="text"
+                required
+                maxLength={80}
+                value={catName}
+                onChange={(e) => setCatName(e.target.value)}
+                placeholder="e.g. Logo Templates"
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm"
+              />
             </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {orders.map((o) => (
-                <div key={o.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2 font-mono font-bold text-slate-900">
-                      <span>{o.id}</span>
-                      <span className="text-slate-400 font-normal">
-                        ({new Date(o.createdAt).toLocaleDateString()})
-                      </span>
-                      {o.isDemoOrder && (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-sans">
-                          Demo Order
+            <div>
+              <label htmlFor="cat-desc" className="block font-semibold text-slate-700 mb-1">
+                Description
+              </label>
+              <textarea
+                id="cat-desc"
+                rows={3}
+                maxLength={300}
+                value={catDescription}
+                onChange={(e) => setCatDescription(e.target.value)}
+                placeholder="Shown on the category page and used for search engines."
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="cat-icon" className="block font-semibold text-slate-700 mb-1">
+                Icon
+              </label>
+              <select
+                id="cat-icon"
+                value={catIcon}
+                onChange={(e) => setCatIcon(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm"
+              >
+                {CATEGORY_ICONS.map((icon) => (
+                  <option key={icon} value={icon}>
+                    {icon}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 py-2.5 bg-[#17365D] hover:bg-[#0B1F3A] text-white rounded-xl font-semibold"
+              >
+                {editingCategoryId ? 'Save category' : 'Add category'}
+              </button>
+              {editingCategoryId && (
+                <button
+                  type="button"
+                  onClick={resetCategoryForm}
+                  className="px-4 py-2.5 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 font-bold text-slate-900 text-sm">
+              All categories ({categories.length})
+            </div>
+            {categories.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">No categories yet. Add one to start organising designs.</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {categories.map((c) => (
+                  <div key={c.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">{c.name}</p>
+                      <p className="text-[11px] text-slate-500 line-clamp-2">{c.description || 'No description'}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {c.templateCount} published design{c.templateCount === 1 ? '' : 's'} · /category/{c.slug}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button
+                        onClick={() => startEditCategory(c)}
+                        className="text-[#17365D] font-semibold hover:underline flex items-center gap-1"
+                      >
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      {confirmDeleteCategoryId === c.id ? (
+                        <span className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleDeleteCategory(c.id)}
+                            className="px-2.5 py-1 bg-rose-600 text-white rounded-lg font-semibold"
+                          >
+                            Confirm delete
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteCategoryId(null)}
+                            className="text-slate-500 hover:underline"
+                          >
+                            Cancel
+                          </button>
                         </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteCategoryId(c.id)}
+                          className="text-rose-600 hover:underline font-semibold flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
                       )}
                     </div>
-                    <p className="text-slate-600 text-[11px]">
-                      {o.customerName} ({o.customerEmail}) · {o.customerCountry}
-                    </p>
-                    <p className="text-slate-400 text-[10px]">
-                      Items: {o.items.map((i) => i.productTitle).join(', ')}
-                    </p>
                   </div>
-                  <div className="text-right">
-                    <span className="font-mono text-sm font-bold text-slate-900 tabular-nums">
-                      ${o.total.toFixed(2)}
-                    </span>
-                    <p className="text-[10px] text-emerald-600 font-medium">{o.paymentMethod}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+            <p className="p-4 text-[11px] text-slate-500 border-t border-slate-100">
+              A category that still contains designs cannot be deleted. Move or delete its designs first.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ================================================================ */}
-      {/* TAB 4: CUSTOM REQUESTS                                           */}
+      {/* TAB: DESIGN BRIEFS (client requests)                             */}
       {/* ================================================================ */}
       {activeTab === 'requests' && (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden text-xs">
-          <div className="p-4 border-b border-slate-200">
-            <h3 className="font-bold text-slate-900">Custom Design Client Leads</h3>
+          <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-3">
+            <h2 className="font-bold text-slate-900 text-sm">Design briefs from customers</h2>
+            <button
+              onClick={() => refreshAdminData()}
+              className="flex items-center gap-1.5 text-[#17365D] font-semibold hover:underline"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </button>
           </div>
 
           {customRequests.length === 0 ? (
-            <div className="p-10 text-center text-slate-500">
-              No custom design briefs submitted yet.
-            </div>
+            <div className="p-10 text-center text-slate-500">No design briefs have been submitted yet.</div>
           ) : (
             <div className="divide-y divide-slate-100">
               {customRequests.map((req) => (
                 <div key={req.id} className="p-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
+                    <div className="min-w-0">
                       <span className="font-bold text-slate-900 text-sm">{req.name}</span>
                       <span className="text-slate-400 text-xs ml-2 font-mono">#{req.id}</span>
+                      <span className="text-slate-400 text-xs ml-2">{new Date(req.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-500 font-semibold">{req.budget}</span>
+                      {req.budget && <span className="text-slate-500 font-semibold">{req.budget}</span>}
+                      <label className="sr-only" htmlFor={`status-${req.id}`}>
+                        Status
+                      </label>
                       <select
+                        id={`status-${req.id}`}
                         value={req.status}
                         onChange={(e) =>
                           updateCustomRequestStatus(
@@ -1661,7 +1878,7 @@ export const AdminDashboardView: React.FC = () => {
                             e.target.value as 'Pending' | 'In Review' | 'Quoted' | 'In Progress' | 'Completed'
                           )
                         }
-                        className="p-1 border rounded bg-white text-xs font-semibold"
+                        className="p-1.5 border border-slate-300 rounded bg-white text-xs font-semibold"
                       >
                         <option value="Pending">Pending</option>
                         <option value="In Review">In Review</option>
@@ -1671,81 +1888,65 @@ export const AdminDashboardView: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  <p className="text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <p className="text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 whitespace-pre-wrap break-words">
                     {req.description}
                   </p>
-                  <div className="flex flex-wrap gap-4 text-[11px] text-slate-500">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
                     <span>
-                      Contact: <strong>{req.email}</strong> · <strong>{req.phone}</strong>
+                      Contact:{' '}
+                      <a className="font-semibold text-[#17365D] hover:underline" href={`mailto:${req.email}`}>
+                        {req.email}
+                      </a>
+                      {req.phone ? <> · <strong>{req.phone}</strong></> : null}
                     </span>
                     <span>
-                      Type: <strong>{req.designType}</strong>
+                      Service: <strong>{req.designType}</strong>
                     </span>
-                    <span>
-                      Deadline: <strong>{req.deadline}</strong>
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* TAB 5: DESIGNER SUBMISSIONS                                      */}
-      {/* ================================================================ */}
-      {activeTab === 'submissions' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden text-xs">
-          <div className="p-4 border-b border-slate-200">
-            <h3 className="font-bold text-slate-900">Contributor Submission Queue</h3>
-          </div>
-
-          {designerSubmissions.length === 0 ? (
-            <div className="p-10 text-center text-slate-500">
-              No independent designer submissions in the queue yet.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {designerSubmissions.map((sub) => (
-                <div key={sub.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded bg-slate-100 overflow-hidden flex items-center justify-center">
-                      {sub.previewUrl ? (
-                        <img src={sub.previewUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-5 h-5 text-slate-400" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900">{sub.title}</h4>
-                      <p className="text-slate-500 text-[11px]">
-                        By {sub.designerName} · {sub.category} · ${sub.price.toFixed(2)}
-                      </p>
-                      <span className="inline-block mt-0.5 font-semibold text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
-                        Status: {sub.status}
+                    {req.requiredSize && (
+                      <span>
+                        Size: <strong>{req.requiredSize}</strong>
                       </span>
-                    </div>
+                    )}
+                    {req.deadline && (
+                      <span>
+                        Deadline: <strong>{req.deadline}</strong>
+                      </span>
+                    )}
                   </div>
-
-                  {sub.status === 'Pending Review' && (
-                    <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    {req.hasReferenceFile && (
                       <button
-                        onClick={() => updateDesignerSubmissionStatus(sub.id, 'Approved', 'Approved by Graphics Expert.')}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center gap-1"
+                        onClick={() => downloadBriefReference(req.id, req.referenceFileName)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg font-semibold text-slate-700 hover:bg-slate-50"
                       >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Approve
+                        <Download className="w-3.5 h-3.5" />
+                        Reference{req.referenceFileName ? `: ${req.referenceFileName}` : ''}
                       </button>
+                    )}
+                    {confirmDeleteBriefId === req.id ? (
+                      <span className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            await deleteCustomRequest(req.id);
+                            setConfirmDeleteBriefId(null);
+                          }}
+                          className="px-2.5 py-1 bg-rose-600 text-white rounded-lg font-semibold"
+                        >
+                          Confirm delete
+                        </button>
+                        <button onClick={() => setConfirmDeleteBriefId(null)} className="text-slate-500 hover:underline">
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
                       <button
-                        onClick={() => updateDesignerSubmissionStatus(sub.id, 'Rejected', 'Needs print bleed adjustments.')}
-                        className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg font-semibold flex items-center gap-1"
+                        onClick={() => setConfirmDeleteBriefId(req.id)}
+                        className="text-rose-600 hover:underline font-semibold flex items-center gap-1"
                       >
-                        <XCircle className="w-3.5 h-3.5" />
-                        Reject
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1754,175 +1955,98 @@ export const AdminDashboardView: React.FC = () => {
       )}
 
       {/* ================================================================ */}
-      {/* TAB 6: COUPONS & PROMOS                                          */}
+      {/* TAB: SETTINGS (storage status + password)                        */}
       {/* ================================================================ */}
-      {activeTab === 'coupons' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs items-start">
-          <form onSubmit={handleCreateCoupon} className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
-              <Tag className="w-4 h-4 text-blue-600" />
-              Create Promo Code
-            </h3>
-
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Coupon Code *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. LAUNCH20"
-                value={newCouponCode}
-                onChange={(e) => setNewCouponCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 uppercase font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Discount Type</label>
-                <select
-                  value={newCouponType}
-                  onChange={(e) => setNewCouponType(e.target.value as 'percentage' | 'fixed')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white"
-                >
-                  <option value="percentage">Percentage (%)</option>
-                  <option value="fixed">Fixed Amount ($)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Value *</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="1"
-                  required
-                  value={newCouponValue}
-                  onChange={(e) => setNewCouponValue(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Min Order ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={newCouponMinOrder}
-                  onChange={(e) => setNewCouponMinOrder(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Expiry Date</label>
-                <input
-                  type="date"
-                  value={newCouponExpiry}
-                  onChange={(e) => setNewCouponExpiry(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-semibold"
-            >
-              Create Coupon
-            </button>
-          </form>
-
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-200 font-bold text-slate-900">
-              Active Coupons ({coupons.length})
-            </div>
-            {coupons.length === 0 ? (
-              <div className="p-8 text-center text-slate-500">
-                No promo coupons created yet. Use the form on the left to add one.
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {coupons.map((c) => (
-                  <div key={c.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <span className="font-mono font-bold text-sm text-slate-900">{c.code}</span>
-                      <p className="text-[11px] text-slate-500">
-                        {c.discountType === 'percentage' ? `${c.value}% off` : `$${c.value} off`} · Min order ${c.minOrder} · Expires {c.expiry}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => deleteCoupon(c.id)}
-                      className="text-rose-600 hover:underline font-semibold"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* TAB 7: STORAGE & ENVIRONMENT STATUS                              */}
-      {/* ================================================================ */}
-      {activeTab === 'storage' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
-              <HardDrive className="w-4 h-4 text-emerald-600" />
-              Persistent Digital File Storage
-            </h3>
+      {activeTab === 'settings' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs items-start">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-3">
+            <h2 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-[#17365D]" />
+              Storage
+            </h2>
             <div className="space-y-2 text-slate-600">
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span>Active Storage Provider</span>
-                <span className="font-mono font-bold text-slate-900 uppercase">
-                  {storageStatus?.provider || 'local'}
-                </span>
+              <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100">
+                <span>Provider</span>
+                <span className="font-semibold text-slate-900 text-right">{storageStatus?.provider || 'Not loaded'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span>Private Source Directory</span>
-                <span className="font-mono text-slate-900">
-                  {storageStatus?.privateStoragePath || 'storage/private/designs'}
-                </span>
+              <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100">
+                <span>Original design files</span>
+                <span className="text-slate-900 text-right">{storageStatus?.privateStoragePath || '—'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span>Public Preview Directory</span>
-                <span className="font-mono text-slate-900">
-                  {storageStatus?.publicPreviewPath || 'storage/public/previews'}
-                </span>
+              <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100">
+                <span>Preview images</span>
+                <span className="text-slate-900 text-right">{storageStatus?.publicPreviewPath || '—'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span>Max File Upload Size</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {maxUploadMb} MB
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span>S3 / Cloudflare R2 Bucket</span>
-                <span className="font-semibold text-slate-900">
-                  {storageStatus?.s3Configured ? 'Configured' : 'Not configured (using persistent disk)'}
-                </span>
+              <div className="flex justify-between gap-4 py-1.5">
+                <span>Maximum upload size</span>
+                <span className="font-semibold text-slate-900">{maxUploadMb} MB</span>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              Production Integration Notes
-            </h3>
-            <p className="text-slate-600 leading-relaxed">
-              Original editable files (.CDR, .AI, .PSD, .EPS, .PSB, .ZIP) are stored outside public static directories and delivered only via HMAC-signed, expiring download tokens after server-side order verification.
-            </p>
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-1">
-              <p className="font-semibold">Checkout & Cloud Storage Deployment:</p>
+            <div className="p-3 rounded-xl bg-[#EAF0F8] border border-[#C7D4E5] text-[#0B1F3A] space-y-1">
+              <p className="font-semibold">Payments are not enabled</p>
               <p>
-                Orders currently run in <strong>Demo Checkout Mode</strong>. Configure <code>ADMIN_PASSWORD</code>, <code>SESSION_SECRET</code>, <code>DOWNLOAD_TOKEN_SECRET</code>, and optional <code>S3_*</code> / payment gateway variables in your server environment before production launch.
+                Free designs download directly. Paid designs are listed with the price, but visitors are asked to
+                contact you to purchase until a real payment provider is connected.
               </p>
             </div>
           </div>
+
+          <form
+            onSubmit={handleChangePassword}
+            className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-4"
+          >
+            <h2 className="text-sm font-bold text-slate-900 font-display flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-[#17365D]" />
+              Change owner password
+            </h2>
+            <div>
+              <label htmlFor="cur-pass" className="block font-semibold text-slate-700 mb-1">
+                Current password
+              </label>
+              <input
+                id="cur-pass"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="new-pass" className="block font-semibold text-slate-700 mb-1">
+                New password (12+ characters)
+              </label>
+              <input
+                id="new-pass"
+                type="password"
+                required
+                minLength={12}
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm"
+              />
+            </div>
+            {passwordMessage && (
+              <p
+                role="alert"
+                className={`px-3 py-2 rounded-lg border ${
+                  passwordMessage.ok
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border-red-200 text-red-700'
+                }`}
+              >
+                {passwordMessage.text}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-[#17365D] hover:bg-[#0B1F3A] text-white rounded-xl font-semibold"
+            >
+              Update password
+            </button>
+          </form>
         </div>
       )}
     </div>

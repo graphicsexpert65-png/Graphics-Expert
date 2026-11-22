@@ -1,28 +1,22 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ShieldCheck, Download } from 'lucide-react';
+import { AppLink } from './AppLink';
+import { ShieldCheck, Mail } from 'lucide-react';
+
+const linkClass = 'hover:text-white transition-colors';
 
 export const Footer: React.FC = () => {
-  const { setCurrentView } = useApp();
+  const { categories } = useApp();
+  const topCategories = categories.slice(0, 6);
 
   return (
-    <footer className="bg-[#0B1120] text-slate-400 text-xs border-t border-slate-800">
+    <footer className="bg-[#0B1F3A] text-slate-300 text-sm border-t border-[#17365D]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12 mb-12">
-          
-          {/* Brand Column */}
           <div className="col-span-2">
-            <button
-              onClick={() => setCurrentView('home')}
-              className="text-left flex items-center gap-2.5 group mb-3"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 64 64"
-                className="w-8 h-8 rounded-lg shrink-0"
-                aria-hidden="true"
-              >
-                <rect width="64" height="64" rx="14" fill="#1E293B" />
+            <AppLink view="home" className="flex items-center gap-2.5 mb-3 w-fit" aria-label="Graphics Expert home">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="w-8 h-8 rounded-lg shrink-0" aria-hidden="true">
+                <rect width="64" height="64" rx="14" fill="#17365D" />
                 <path
                   d="M42 22H26a6 6 0 0 0-6 6v8a6 6 0 0 0 6 6h12a6 6 0 0 0 6-6v-4H32"
                   stroke="#FFFFFF"
@@ -31,221 +25,99 @@ export const Footer: React.FC = () => {
                   strokeLinejoin="round"
                   fill="none"
                 />
-                <circle cx="46" cy="18" r="4.5" fill="#F59E0B" />
+                <circle cx="46" cy="18" r="4.5" fill="#FFFFFF" />
               </svg>
-              <span className="font-display font-extrabold text-lg text-white tracking-tight">
-                GRAPHICS EXPERT
-              </span>
-            </button>
-            <p className="text-slate-200 text-sm font-medium mb-3">
-              "Creative Designs. Professional Tools."
+              <span className="font-display font-extrabold text-lg text-white tracking-tight">GRAPHICS EXPERT</span>
+            </AppLink>
+            <p className="text-slate-300 text-sm leading-relaxed max-w-sm mb-4">
+              Original CorelDRAW, Adobe Illustrator and Photoshop design files, free browser design tools, and custom
+              graphic design for logos, banners, cards and print.
             </p>
-            <p className="text-slate-400 text-xs leading-relaxed max-w-sm mb-4">
-              Original CorelDRAW, Adobe Illustrator, Photoshop & print-ready design templates, free browser utilities, and custom graphic design services for businesses and creators.
-            </p>
-            <div className="flex items-center gap-3 text-slate-400">
-              <span className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Original Source Files
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-sky-300" />
+                Original source files
               </span>
-              <span>·</span>
-              <span className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                <Download className="w-3.5 h-3.5 text-blue-400" />
-                Protected Digital Delivery
-              </span>
+              <a href="mailto:graphicsexpert65@gmail.com" className="flex items-center gap-1.5 hover:text-white">
+                <Mail className="w-4 h-4 text-sky-300" />
+                graphicsexpert65@gmail.com
+              </a>
             </div>
           </div>
 
-          {/* Marketplace Links */}
           <div>
-            <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
-              Design Categories
-            </h4>
+            <h2 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">Design Categories</h2>
             <ul className="space-y-2">
               <li>
-                <button
-                  onClick={() => setCurrentView('marketplace', { categoryId: '' })}
-                  className="hover:text-white transition-colors"
-                >
+                <AppLink view="marketplace" className={linkClass}>
                   All Designs
-                </button>
+                </AppLink>
               </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('marketplace', { categoryId: 'coreldraw-designs' })}
-                  className="hover:text-white transition-colors"
-                >
-                  CorelDRAW Designs
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('marketplace', { categoryId: 'panaflex-flex-banners' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Panaflex & Flex Banners
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('marketplace', { categoryId: 'wedding-nikkah-cards' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Wedding & Nikkah Cards
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('marketplace', { categoryId: 'restaurant-menus' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Restaurant Menus
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('marketplace', { categoryId: 'business-cards' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Business Cards
-                </button>
-              </li>
+              {topCategories.map((c) => (
+                <li key={c.id}>
+                  <AppLink view="marketplace" categoryId={c.id} className={linkClass}>
+                    {c.name}
+                  </AppLink>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Free Tools */}
           <div>
-            <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
-              Free Online Tools
-            </h4>
+            <h2 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">Free Tools</h2>
             <ul className="space-y-2">
-              <li>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'resizer' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Image Resizer
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'compressor' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Image Compressor
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'jpg-to-png' })}
-                  className="hover:text-white transition-colors"
-                >
-                  JPG to PNG / PNG to JPG
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'image-to-pdf' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Image to PDF Maker
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'print-calculator' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Print Size Calculator
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'social-generator' })}
-                  className="hover:text-white transition-colors"
-                >
-                  Social Media Resizer
-                </button>
-              </li>
+              {[
+                ['resizer', 'Image Resizer'],
+                ['compressor', 'Image Compressor'],
+                ['jpg-to-png', 'JPG ⇄ PNG Converter'],
+                ['image-to-pdf', 'Image to PDF'],
+                ['print-calculator', 'Print Size Calculator'],
+                ['social-generator', 'Social Media Sizes'],
+              ].map(([id, label]) => (
+                <li key={id}>
+                  <AppLink view="tools" toolId={id} className={linkClass}>
+                    {label}
+                  </AppLink>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Company & Support */}
           <div>
-            <h4 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">
-              Company & Help
-            </h4>
+            <h2 className="text-white text-xs font-semibold uppercase tracking-wider mb-3">Company</h2>
             <ul className="space-y-2">
               <li>
-                <button
-                  onClick={() => setCurrentView('about')}
-                  className="hover:text-white transition-colors"
-                >
-                  About Graphics Expert
-                </button>
+                <AppLink view="about" className={linkClass}>
+                  About
+                </AppLink>
               </li>
               <li>
-                <button
-                  onClick={() => setCurrentView('custom-design')}
-                  className="hover:text-white transition-colors"
-                >
-                  Custom Design Services
-                </button>
+                <AppLink view="custom-design" className={linkClass}>
+                  Design Services
+                </AppLink>
               </li>
               <li>
-                <button
-                  onClick={() => setCurrentView('pricing')}
-                  className="hover:text-white transition-colors"
-                >
-                  Membership Pricing
-                </button>
+                <AppLink view="faq" className={linkClass}>
+                  FAQ
+                </AppLink>
               </li>
               <li>
-                <button
-                  onClick={() => setCurrentView('faq')}
-                  className="hover:text-white transition-colors"
-                >
-                  Help & FAQs
-                </button>
+                <AppLink view="licenses" className={linkClass}>
+                  Licenses
+                </AppLink>
               </li>
               <li>
-                <button
-                  onClick={() => setCurrentView('licenses')}
-                  className="hover:text-white transition-colors"
-                >
-                  License Agreements
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setCurrentView('contact')}
-                  className="hover:text-white transition-colors"
-                >
-                  Contact & Support
-                </button>
+                <AppLink view="contact" className={linkClass}>
+                  Contact
+                </AppLink>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Sub-Footer */}
-        <div className="pt-6 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[11px] text-slate-500">
-            © 2026 Graphics Expert. All rights reserved. Creative Designs. Professional Tools.
-          </p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <button onClick={() => setCurrentView('licenses')} className="hover:text-slate-300">
-              Personal & Commercial Licenses
-            </button>
-            <span>·</span>
-            <button onClick={() => setCurrentView('faq')} className="hover:text-slate-300">
-              Refund Policy
-            </button>
-            <span>·</span>
-            <button onClick={() => setCurrentView('contact')} className="hover:text-slate-300">
-              graphicsexpert65@gmail.com
-            </button>
-          </div>
+        <div className="pt-6 border-t border-[#17365D] flex flex-col md:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-slate-400">© {new Date().getFullYear()} Graphics Expert. All rights reserved.</p>
+          <p className="text-xs text-slate-400">Designs, services and free tools for printers, shops and creators.</p>
         </div>
       </div>
     </footer>

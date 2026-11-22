@@ -1,21 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  CartItem,
+  AdminStats,
   Category,
-  Coupon,
   CustomDesignRequest,
-  DesignerSubmission,
-  LicenseType,
-  Order,
-  OrderItem,
+  DesignRequestStatus,
   Product,
   ProductStatus,
   StorageConfigStatus,
   User,
-  UserRole,
   ViewState,
 } from '../types';
-import { CATEGORIES } from '../data/mockData';
+import { FALLBACK_CATEGORIES } from '../data/mockData';
+import { PAGE_SEO, applySeo } from '../seo';
 
 interface Toast {
   id: string;
@@ -24,19 +20,24 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
+export interface DesignBriefInput {
+  name: string;
+  email: string;
+  phone: string;
+  designType: string;
+  requiredSize: string;
+  description: string;
+  deadline: string;
+  budget: string;
+  referenceFile?: File | null;
+}
+
 interface AppContextType {
   currentUser: User | null;
   authToken: string | null;
-  switchRole: (role: 'guest' | 'customer' | 'designer' | 'admin') => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (payload: {
-    name: string;
-    email: string;
-    password: string;
-    country: string;
-    role?: UserRole;
-  }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   currentView: ViewState;
   setCurrentView: (view: ViewState, params?: { productId?: string; categoryId?: string; toolId?: string }) => void;
   selectedProductId: string | null;
@@ -47,62 +48,106 @@ interface AppContextType {
   products: Product[];
   adminProducts: Product[];
   isLoadingProducts: boolean;
+  productsError: string | null;
   refreshMarketplace: () => Promise<void>;
   refreshAdminData: () => Promise<void>;
   storageStatus: StorageConfigStatus | null;
+  adminStats: AdminStats | null;
   categories: Category[];
-  cart: CartItem[];
-  addToCart: (product: Product, license?: LicenseType) => void;
-  removeFromCart: (productId: string) => void;
-  clearCart: () => void;
-  cartTotal: number;
-  cartSubtotal: number;
-  cartDiscount: number;
-  wishlist: string[];
-  toggleWishlist: (productId: string) => void;
-  isWishlisted: (productId: string) => boolean;
-  orders: Order[];
-  createOrder: (details: {
-    customerName: string;
-    customerEmail: string;
-    customerCountry: string;
-    paymentMethod: string;
-  }) => Promise<Order | null>;
-  coupons: Coupon[];
-  createCoupon: (coupon: Omit<Coupon, 'id' | 'active'>) => Promise<boolean>;
-  deleteCoupon: (id: string) => Promise<void>;
-  appliedCoupon: Coupon | null;
-  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
-  removeCoupon: () => void;
+  createCategory: (input: { name: string; description: string; iconName: string }) => Promise<boolean>;
+  updateCategory: (id: string, input: { name: string; description: string; iconName: string }) => Promise<boolean>;
+  deleteCategory: (id: string) => Promise<boolean>;
   customRequests: CustomDesignRequest[];
-  addCustomRequest: (request: Omit<CustomDesignRequest, 'id' | 'createdAt' | 'status'>) => Promise<string | null>;
-  updateCustomRequestStatus: (id: string, status: CustomDesignRequest['status']) => Promise<void>;
-  designerSubmissions: DesignerSubmission[];
-  addDesignerSubmission: (submission: Omit<DesignerSubmission, 'id' | 'submittedAt' | 'status'>) => Promise<void>;
-  updateDesignerSubmissionStatus: (id: string, status: DesignerSubmission['status'], reviewNote?: string) => Promise<void>;
+  addCustomRequest: (brief: DesignBriefInput) => Promise<{ id: string | null; error?: string }>;
+  updateCustomRequestStatus: (id: string, status: DesignRequestStatus) => Promise<void>;
+  deleteCustomRequest: (id: string) => Promise<void>;
+  downloadBriefReference: (id: string, fileName?: string) => Promise<void>;
   uploadNewDesign: (formData: FormData) => Promise<{ success: boolean; product?: Product; error?: string }>;
   updateAdminDesign: (id: string, formData: FormData) => Promise<{ success: boolean; product?: Product; error?: string }>;
   updateProductStatus: (id: string, status: ProductStatus) => Promise<void>;
   duplicateProduct: (id: string) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  downloadFreeFile: (product: Product, fileId: string, fileName: string) => Promise<void>;
+  downloadAdminFile: (productId: string, fileId: string, fileName: string) => Promise<void>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   toasts: Toast[];
   addToast: (title: string, message?: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
   isAuthModalOpen: boolean;
-  authModalTab: 'login' | 'signup' | 'forgot';
-  openAuthModal: (tab?: 'login' | 'signup' | 'forgot') => void;
+  openAuthModal: () => void;
   closeAuthModal: () => void;
-  downloadDigitalAsset: (orderId: string, item: OrderItem, fileId?: string, fileName?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const TOKEN_STORAGE_KEY = 'ge_auth_token';
-const WISHLIST_STORAGE_KEY = 'ge_wishlist';
+
+// ---------------------------------------------------------------------------
+// URL <-> view mapping (real, crawlable URLs for every public page)
+// ---------------------------------------------------------------------------
+
+const VIEW_PATHS: Record<Exclude<ViewState, 'product-detail'>, string> = {
+  home: '/',
+  marketplace: '/marketplace',
+  tools: '/tools',
+  'custom-design': '/services',
+  'admin-dashboard': '/admin',
+  about: '/about',
+  contact: '/contact',
+  faq: '/faq',
+  licenses: '/licenses',
+};
+
+interface RouteState {
+  view: ViewState;
+  productRef: string | null;
+  categoryId: string | null;
+}
+
+function parsePath(pathname: string): RouteState {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  const design = path.match(/^\/design\/([^/]+)$/);
+  if (design) return { view: 'product-detail', productRef: decodeURIComponent(design[1]), categoryId: null };
+  const category = path.match(/^\/category\/([^/]+)$/);
+  if (category) return { view: 'marketplace', productRef: null, categoryId: decodeURIComponent(category[1]) };
+  for (const [view, p] of Object.entries(VIEW_PATHS)) {
+    if (p === path) return { view: view as ViewState, productRef: null, categoryId: null };
+  }
+  return { view: 'home', productRef: null, categoryId: null };
+}
+
+export function buildPath(view: ViewState, productRef: string | null, categoryId: string | null): string {
+  if (view === 'product-detail' && productRef) return `/design/${encodeURIComponent(productRef)}`;
+  if (view === 'marketplace' && categoryId) return `/category/${encodeURIComponent(categoryId)}`;
+  if (view === 'product-detail') return '/marketplace';
+  return VIEW_PATHS[view];
+}
+
+async function readError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    if (data && typeof data.error === 'string') return data.error;
+  } catch {
+    // body was not JSON
+  }
+  return `${fallback} (server responded ${res.status})`;
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const initialRoute = useMemo(() => parsePath(window.location.pathname), []);
+
   const [authToken, setAuthToken] = useState<string | null>(() => {
     try {
       return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -111,34 +156,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentView, setCurrentViewState] = useState<ViewState>('home');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [currentView, setCurrentViewState] = useState<ViewState>(initialRoute.view);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(initialRoute.productRef);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(initialRoute.categoryId);
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [products, setProducts] = useState<Product[]>([]);
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const [storageStatus, setStorageStatus] = useState<StorageConfigStatus | null>(null);
-
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [wishlist, setWishlist] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(WISHLIST_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [apiCategories, setApiCategories] = useState<Category[] | null>(null);
   const [customRequests, setCustomRequests] = useState<CustomDesignRequest[]>([]);
-  const [designerSubmissions, setDesignerSubmissions] = useState<DesignerSubmission[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup' | 'forgot'>('login');
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -148,9 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (title: string, message?: string, type: 'success' | 'error' | 'info' = 'success') => {
       const id = 'toast_' + Math.random().toString(36).substring(2, 9);
       setToasts((prev) => [...prev, { id, title, message, type }]);
-      setTimeout(() => {
-        removeToast(id);
-      }, 4500);
+      setTimeout(() => removeToast(id), 5000);
     },
     [removeToast]
   );
@@ -158,107 +189,102 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const authFetch = useCallback(
     async (url: string, options: RequestInit = {}) => {
       const headers = new Headers(options.headers || {});
-      if (authToken) {
-        headers.set('Authorization', `Bearer ${authToken}`);
+      if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+      const res = await fetch(url, { ...options, headers });
+      if (res.status === 401 && authToken) {
+        // Session expired: drop it so the owner is asked to sign in again.
+        try {
+          localStorage.removeItem(TOKEN_STORAGE_KEY);
+        } catch {
+          // ignore
+        }
+        setAuthToken(null);
+        setCurrentUser(null);
       }
-      return fetch(url, { ...options, headers });
+      return res;
     },
     [authToken]
   );
 
+  // ----- public data -----
+
   const refreshMarketplace = useCallback(async () => {
     try {
       setIsLoadingProducts(true);
-      const res = await fetch('/api/products');
-      if (res.ok) {
-        const data = await res.json();
+      const [prodRes, catRes] = await Promise.all([fetch('/api/products'), fetch('/api/categories')]);
+      if (prodRes.ok) {
+        const data = await prodRes.json();
         setProducts(data.products || []);
+        setProductsError(null);
+      } else {
+        setProductsError(await readError(prodRes, 'Designs could not be loaded'));
       }
-    } catch (err) {
-      console.error('Failed to load marketplace products:', err);
+      if (catRes.ok) {
+        const data = await catRes.json();
+        setApiCategories(data.categories || []);
+      }
+    } catch {
+      setProductsError('Could not reach the server. Please check your connection and try again.');
     } finally {
       setIsLoadingProducts(false);
     }
   }, []);
 
+  useEffect(() => {
+    refreshMarketplace();
+  }, [refreshMarketplace]);
+
+  const categories = useMemo<Category[]>(() => {
+    if (apiCategories) return apiCategories;
+    return FALLBACK_CATEGORIES;
+  }, [apiCategories]);
+
+  // ----- admin data -----
+
   const refreshAdminData = useCallback(async () => {
     if (!authToken) return;
     try {
-      const [prodRes, cpnRes, reqRes, stRes, subRes, ordRes] = await Promise.all([
+      const [prodRes, reqRes, stRes, statsRes] = await Promise.all([
         authFetch('/api/admin/products'),
-        authFetch('/api/admin/coupons'),
         authFetch('/api/custom-requests'),
         authFetch('/api/storage-status'),
-        authFetch('/api/designer-submissions'),
-        authFetch('/api/orders'),
+        authFetch('/api/admin/stats'),
       ]);
-      if (prodRes.ok) {
-        const d = await prodRes.json();
-        setAdminProducts(d.products || []);
-      }
-      if (cpnRes.ok) {
-        const d = await cpnRes.json();
-        setCoupons(d.coupons || []);
-      }
-      if (reqRes.ok) {
-        const d = await reqRes.json();
-        setCustomRequests(d.customRequests || []);
-      }
-      if (stRes.ok) {
-        const d = await stRes.json();
-        setStorageStatus(d);
-      }
-      if (subRes.ok) {
-        const d = await subRes.json();
-        setDesignerSubmissions(d.submissions || []);
-      }
-      if (ordRes.ok) {
-        const d = await ordRes.json();
-        setOrders(d.orders || []);
-      }
+      if (prodRes.ok) setAdminProducts((await prodRes.json()).products || []);
+      if (reqRes.ok) setCustomRequests((await reqRes.json()).customRequests || []);
+      if (stRes.ok) setStorageStatus(await stRes.json());
+      if (statsRes.ok) setAdminStats((await statsRes.json()).stats || null);
     } catch (err) {
       console.error('Failed to load admin data:', err);
     }
   }, [authToken, authFetch]);
-
-  // Initial load: fetch published products + verify session if token stored
-  useEffect(() => {
-    refreshMarketplace();
-  }, [refreshMarketplace]);
 
   useEffect(() => {
     let active = true;
     const syncSession = async () => {
       if (!authToken) {
         setCurrentUser(null);
-        setOrders([]);
         setAdminProducts([]);
+        setCustomRequests([]);
+        setAdminStats(null);
         return;
       }
       try {
-        const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
+        const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${authToken}` } });
+        if (!active) return;
         if (!res.ok) {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
-          if (active) {
+          if (res.status === 401) {
+            try {
+              localStorage.removeItem(TOKEN_STORAGE_KEY);
+            } catch {
+              // ignore
+            }
             setAuthToken(null);
-            setCurrentUser(null);
           }
+          setCurrentUser(null);
           return;
         }
-        const data = await res.json();
-        if (!active) return;
-        setCurrentUser(data.user);
-
-        // Fetch user orders
-        const ordRes = await fetch('/api/orders', {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-        if (ordRes.ok && active) {
-          const ordData = await ordRes.json();
-          setOrders(ordData.orders || []);
-        }
+        setCurrentUser((await res.json()).user);
       } catch (err) {
         console.error('Session check failed:', err);
       }
@@ -270,69 +296,121 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [authToken]);
 
   useEffect(() => {
-    if (currentUser?.role === 'admin') {
-      refreshAdminData();
-    } else if (currentUser?.role === 'designer' && authToken) {
-      authFetch('/api/designer-submissions')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (d?.submissions) setDesignerSubmissions(d.submissions);
-        })
-        .catch(() => {});
-    }
-  }, [currentUser, authToken, authFetch, refreshAdminData]);
+    if (currentUser?.role === 'admin') refreshAdminData();
+  }, [currentUser, refreshAdminData]);
 
-  // Dynamic category counts derived from real published products
-  const dynamicCategories = useMemo(() => {
-    return CATEGORIES.map((cat) => ({
-      ...cat,
-      templateCount: products.filter((p) => p.status === 'published' && p.categoryId === cat.id).length,
-    }));
-  }, [products]);
+  // ----- navigation -----
 
-  const setCurrentView = (
-    view: ViewState,
-    params?: { productId?: string; categoryId?: string; toolId?: string }
-  ) => {
-    setCurrentViewState(view);
-    if (params?.productId !== undefined) setSelectedProductId(params.productId);
-    if (params?.categoryId !== undefined) setSelectedCategoryId(params.categoryId);
-    if (params?.toolId !== undefined) setActiveToolId(params.toolId);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const productsRef = useRef<Product[]>([]);
+  productsRef.current = products;
 
-  const persistSession = (token: string, user: User) => {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    setAuthToken(token);
-    setCurrentUser(user);
-  };
+  const setCurrentView = useCallback(
+    (view: ViewState, params?: { productId?: string; categoryId?: string; toolId?: string }) => {
+      let productRef = params?.productId !== undefined ? params.productId : null;
+      if (view === 'product-detail' && productRef) {
+        const found = productsRef.current.find((p) => p.id === productRef || p.slug === productRef);
+        if (found) productRef = found.slug;
+      }
+      const categoryId = view === 'marketplace' ? (params?.categoryId ?? null) : null;
 
-  const switchRole = async (role: 'guest' | 'customer' | 'designer' | 'admin') => {
-    if (role === 'guest') {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      setAuthToken(null);
-      setCurrentUser(null);
-      setOrders([]);
-      addToast('Guest Mode Active', 'Browse published designs and use free creative tools.', 'info');
+      setCurrentViewState(view);
+      setSelectedProductId(view === 'product-detail' ? productRef : null);
+      setSelectedCategoryId(view === 'marketplace' ? categoryId : params?.categoryId ?? null);
+      if (params?.toolId !== undefined) setActiveToolId(params.toolId);
+
+      const path = buildPath(view, productRef, categoryId);
+      if (window.location.pathname !== path) window.history.pushState({}, '', path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    []
+  );
+
+  useEffect(() => {
+    const onPop = () => {
+      const route = parsePath(window.location.pathname);
+      setCurrentViewState(route.view);
+      setSelectedProductId(route.productRef);
+      setSelectedCategoryId(route.categoryId);
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // ----- SEO (title, description, canonical, Open Graph, JSON-LD) -----
+
+  useEffect(() => {
+    if (currentView === 'admin-dashboard') {
+      applySeo({ title: 'Admin | Graphics Expert', description: 'Private area.', path: '/admin', noindex: true });
       return;
     }
-    try {
-      const res = await fetch('/api/auth/demo-switch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        addToast('Switch Failed', data.error || 'Could not switch role.', 'error');
+    if (currentView === 'product-detail') {
+      const product = products.find((p) => p.id === selectedProductId || p.slug === selectedProductId);
+      if (product) {
+        const price = product.discountPrice ?? product.price;
+        applySeo({
+          title: `${product.title} | ${product.categoryName} | Graphics Expert`,
+          description: (product.shortDescription || product.description).slice(0, 158),
+          path: `/design/${product.slug}`,
+          image: product.previewUrl,
+          type: 'product',
+          jsonLd: {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: product.title,
+            description: product.shortDescription || product.description,
+            image: product.previewUrl ? [window.location.origin + product.previewUrl] : undefined,
+            category: product.categoryName,
+            brand: { '@type': 'Brand', name: 'Graphics Expert' },
+            offers: {
+              '@type': 'Offer',
+              price: price.toFixed(2),
+              priceCurrency: 'USD',
+              availability: 'https://schema.org/InStock',
+              url: `${window.location.origin}/design/${product.slug}`,
+            },
+          },
+        });
+      } else {
+        applySeo({
+          title: isLoadingProducts ? 'Loading design | Graphics Expert' : 'Design not found | Graphics Expert',
+          description: 'This design is not available.',
+          path: window.location.pathname,
+          noindex: !isLoadingProducts,
+        });
+      }
+      return;
+    }
+    if (currentView === 'marketplace' && selectedCategoryId) {
+      const category = categories.find((c) => c.id === selectedCategoryId);
+      if (category) {
+        applySeo({
+          title: `${category.name} | Editable Design Files | Graphics Expert`,
+          description: category.description,
+          path: `/category/${category.id}`,
+        });
         return;
       }
-      persistSession(data.token, data.user);
-      addToast(`Signed in as ${data.user.name}`, `Active role: ${data.user.role.toUpperCase()}`, 'success');
-    } catch {
-      addToast('Connection Error', 'Could not reach Graphics Expert server.', 'error');
     }
-  };
+    const seo = PAGE_SEO[currentView] || PAGE_SEO.home;
+    const path = VIEW_PATHS[currentView as Exclude<ViewState, 'product-detail'>] || '/';
+    applySeo({
+      ...seo,
+      path,
+      jsonLd:
+        currentView === 'home'
+          ? {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'Graphics Expert',
+              url: window.location.origin,
+              description: PAGE_SEO.home.description,
+            }
+          : null,
+    });
+  }, [currentView, selectedProductId, selectedCategoryId, products, categories, isLoadingProducts]);
+
+  // ----- auth -----
 
   const login = async (email: string, password: string) => {
     try {
@@ -341,376 +419,183 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+      if (!res.ok) return { success: false, error: await readError(res, 'Sign-in failed') };
       const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Invalid credentials.' };
+      try {
+        localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+      } catch {
+        // storage unavailable: session lasts until reload
       }
-      persistSession(data.token, data.user);
+      setAuthToken(data.token);
+      setCurrentUser(data.user);
       setIsAuthModalOpen(false);
-      addToast(`Welcome back, ${data.user.name}`, 'Signed in to Graphics Expert.', 'success');
+      addToast('Signed in', 'Welcome back to the Graphics Expert admin.', 'success');
       return { success: true };
     } catch {
-      return { success: false, error: 'Network error while signing in.' };
-    }
-  };
-
-  const register = async (payload: {
-    name: string;
-    email: string;
-    password: string;
-    country: string;
-    role?: UserRole;
-  }) => {
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Registration failed.' };
-      }
-      persistSession(data.token, data.user);
-      setIsAuthModalOpen(false);
-      addToast(`Welcome, ${data.user.name}`, 'Your Graphics Expert account is active.', 'success');
-      return { success: true };
-    } catch {
-      return { success: false, error: 'Network error during registration.' };
+      return { success: false, error: 'Could not reach the server. Please check your connection.' };
     }
   };
 
   const logout = () => {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    try {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
     setAuthToken(null);
     setCurrentUser(null);
-    setOrders([]);
     setAdminProducts([]);
-    addToast('Signed Out', 'You have been safely signed out.', 'info');
-    if (currentView === 'dashboard' || currentView === 'designer-dashboard' || currentView === 'admin-dashboard') {
-      setCurrentView('home');
-    }
+    setCustomRequests([]);
+    setAdminStats(null);
+    addToast('Signed out', 'You have been signed out.', 'info');
+    if (currentView === 'admin-dashboard') setCurrentView('home');
   };
 
-  const openAuthModal = (tab: 'login' | 'signup' | 'forgot' = 'login') => {
-    setAuthModalTab(tab);
-    setIsAuthModalOpen(true);
-  };
-
-  const closeAuthModal = () => {
-    setIsAuthModalOpen(false);
-  };
-
-  // Cart operations
-  const addToCart = (product: Product, license: LicenseType = 'Commercial') => {
-    const existing = cart.find((item) => item.product.id === product.id && item.license === license);
-    if (existing) {
-      addToast('Already in Cart', `"${product.title}" (${license}) is already in your bag.`, 'info');
-      return;
-    }
-    const itemPrice = product.discountPrice ?? product.price;
-    const finalPrice = license === 'Extended Commercial' ? itemPrice * 2.5 : itemPrice;
-    setCart((prev) => [...prev, { product, license, price: Number(finalPrice.toFixed(2)) }]);
-    addToast('Added to Cart', `"${product.title}" added to your bag.`, 'success');
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-    addToast('Removed from Cart', 'Item removed from your bag.', 'info');
-  };
-
-  const clearCart = () => setCart([]);
-
-  const cartSubtotal = Number(cart.reduce((sum, item) => sum + item.price, 0).toFixed(2));
-
-  let cartDiscount = 0;
-  if (appliedCoupon) {
-    if (appliedCoupon.discountType === 'percentage') {
-      cartDiscount = Number(((cartSubtotal * appliedCoupon.value) / 100).toFixed(2));
-    } else {
-      cartDiscount = Math.min(appliedCoupon.value, cartSubtotal);
-    }
-  }
-
-  const cartTotal = Number(Math.max(0, cartSubtotal - cartDiscount).toFixed(2));
-
-  const applyCoupon = async (code: string) => {
+  const changePassword = async (currentPassword: string, newPassword: string) => {
     try {
-      const res = await fetch(
-        `/api/coupons/validate?code=${encodeURIComponent(code.trim())}&subtotal=${cartSubtotal}`
-      );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, message: data.message || 'Invalid coupon code.' };
-      }
-      setAppliedCoupon(data.coupon);
-      addToast('Coupon Applied!', `Discount code ${data.coupon.code} applied.`, 'success');
-      return { success: true, message: `Coupon ${data.coupon.code} applied!` };
-    } catch {
-      return { success: false, message: 'Failed to validate coupon.' };
-    }
-  };
-
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    addToast('Coupon Removed', 'Discount removed from total.', 'info');
-  };
-
-  const createCoupon = async (coupon: Omit<Coupon, 'id' | 'active'>) => {
-    try {
-      const res = await authFetch('/api/admin/coupons', {
+      const res = await authFetch('/api/admin/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(coupon),
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        addToast('Coupon Error', data.error || 'Could not create coupon.', 'error');
-        return false;
-      }
-      setCoupons((prev) => [data.coupon, ...prev]);
-      addToast('Coupon Created', `Code ${data.coupon.code} is now active.`, 'success');
-      return true;
+      if (!res.ok) return { success: false, error: await readError(res, 'Could not update the password') };
+      addToast('Password updated', 'Your owner password has been changed.', 'success');
+      return { success: true };
     } catch {
-      return false;
+      return { success: false, error: 'Could not reach the server. Please check your connection.' };
     }
   };
 
-  const deleteCoupon = async (id: string) => {
-    const res = await authFetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setCoupons((prev) => prev.filter((c) => c.id !== id));
-      addToast('Coupon Removed', 'Promo code deleted.', 'info');
-    }
-  };
+  const openAuthModal = () => setIsAuthModalOpen(true);
+  const closeAuthModal = () => setIsAuthModalOpen(false);
 
-  // Wishlist persisted in localStorage
-  const toggleWishlist = (productId: string) => {
-    if (!currentUser) {
-      addToast('Sign In Required', 'Please sign in to save designs to your wishlist.', 'info');
-      openAuthModal('login');
-      return;
-    }
-    setWishlist((prev) => {
-      const exists = prev.includes(productId);
-      const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
-      try {
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      addToast(
-        exists ? 'Removed from Wishlist' : 'Saved to Wishlist',
-        exists ? 'Item removed from wishlist.' : 'Design added to your wishlist.',
-        exists ? 'info' : 'success'
-      );
-      return next;
-    });
-  };
+  // ----- downloads -----
 
-  const isWishlisted = (productId: string) => wishlist.includes(productId);
-
-  // Server-backed Order Creation
-  const createOrder = async (details: {
-    customerName: string;
-    customerEmail: string;
-    customerCountry: string;
-    paymentMethod: string;
-  }) => {
+  const downloadFreeFile = async (product: Product, fileId: string, fileName: string) => {
     try {
-      const res = await authFetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...details,
-          couponCode: appliedCoupon?.code,
-          items: cart.map((c) => ({ productId: c.product.id, license: c.license })),
-        }),
-      });
-      const data = await res.json();
+      addToast('Preparing download', fileName, 'info');
+      const res = await fetch(`/api/downloads/${encodeURIComponent(product.id)}/${encodeURIComponent(fileId)}`);
       if (!res.ok) {
-        addToast('Order Error', data.error || 'Checkout could not be completed.', 'error');
-        return null;
-      }
-      const createdOrder: Order = data.order;
-      setOrders((prev) => [createdOrder, ...prev]);
-      clearCart();
-      setAppliedCoupon(null);
-      return createdOrder;
-    } catch {
-      addToast('Checkout Failed', 'Unable to connect to order server.', 'error');
-      return null;
-    }
-  };
-
-  // Real Server-Authorized Binary Download (streams original CDR/AI/PSD/EPS/ZIP or ZIP package)
-  const downloadDigitalAsset = async (
-    orderId: string,
-    item: OrderItem,
-    fileId?: string,
-    fileName?: string
-  ) => {
-    try {
-      addToast('Preparing Secure Download', `Verifying purchase token for ${fileName || item.productTitle}...`, 'info');
-      let token = item.downloadToken;
-
-      const buildUrl = (t: string) =>
-        `/api/downloads/${encodeURIComponent(orderId)}/${encodeURIComponent(item.id)}?token=${encodeURIComponent(t)}${
-          fileId ? `&fileId=${encodeURIComponent(fileId)}` : ''
-        }`;
-
-      let res = await authFetch(buildUrl(token));
-
-      // If token expired and user is logged in, refresh token from server
-      if (res.status === 401 && authToken) {
-        const refreshRes = await authFetch(
-          `/api/orders/${encodeURIComponent(orderId)}/items/${encodeURIComponent(item.id)}/refresh-token`,
-          { method: 'POST' }
-        );
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          token = refreshData.downloadToken;
-          setOrders((prev) =>
-            prev.map((o) =>
-              o.id === orderId
-                ? {
-                    ...o,
-                    items: o.items.map((it) =>
-                      it.id === item.id
-                        ? { ...it, downloadToken: token, downloadExpiresAt: refreshData.downloadExpiresAt }
-                        : it
-                    ),
-                  }
-                : o
-            )
-          );
-          res = await authFetch(buildUrl(token));
-        }
-      }
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Download authorization denied.' }));
-        addToast('Download Blocked', err.error || 'Purchase verification failed.', 'error');
+        addToast('Download unavailable', await readError(res, 'The file could not be downloaded'), 'error');
         return;
       }
-
-      const disposition = res.headers.get('Content-Disposition') || '';
-      const match = disposition.match(/filename="([^"]+)"/i);
-      const downloadFilename =
-        match?.[1] || fileName || `${item.productTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-package.zip`;
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = downloadFilename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      addToast('Download Complete', `Saved ${downloadFilename}`, 'success');
-      refreshMarketplace();
-    } catch (err) {
-      console.error('Download error:', err);
-      addToast('Download Error', 'Failed to download design package.', 'error');
-    }
-  };
-
-  // Custom Design Requests
-  const addCustomRequest = async (
-    request: Omit<CustomDesignRequest, 'id' | 'createdAt' | 'status'>
-  ) => {
-    try {
-      const res = await fetch('/api/custom-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        addToast('Submission Failed', data.error || 'Could not submit request.', 'error');
-        return null;
-      }
-      setCustomRequests((prev) => [data.customRequest, ...prev]);
-      addToast('Request Submitted!', `Your request #${data.customRequest.id} was sent to Graphics Expert.`, 'success');
-      return data.customRequest.id as string;
+      saveBlob(await res.blob(), fileName);
+      addToast('Download complete', `Saved ${fileName}`, 'success');
     } catch {
-      addToast(
-        'Online request service unavailable',
-        'This Cloudflare Pages deployment has no connected request API. Your form details remain on screen; use the email option shown below to send the brief.',
-        'error'
-      );
-      return null;
+      addToast('Download failed', 'Could not reach the server. Please try again.', 'error');
     }
   };
 
-  const updateCustomRequestStatus = async (id: string, status: CustomDesignRequest['status']) => {
-    const res = await authFetch(`/api/admin/custom-requests/${id}`, {
+  const downloadAdminFile = async (productId: string, fileId: string, fileName: string) => {
+    try {
+      const res = await authFetch(
+        `/api/admin/products/${encodeURIComponent(productId)}/files/${encodeURIComponent(fileId)}/download`
+      );
+      if (!res.ok) {
+        addToast('Download failed', await readError(res, 'The file could not be downloaded'), 'error');
+        return;
+      }
+      saveBlob(await res.blob(), fileName);
+    } catch {
+      addToast('Download failed', 'Could not reach the server.', 'error');
+    }
+  };
+
+  // ----- design briefs -----
+
+  const addCustomRequest = async (brief: DesignBriefInput) => {
+    try {
+      const form = new FormData();
+      form.set('name', brief.name);
+      form.set('email', brief.email);
+      form.set('phone', brief.phone);
+      form.set('designType', brief.designType);
+      form.set('requiredSize', brief.requiredSize);
+      form.set('description', brief.description);
+      form.set('deadline', brief.deadline);
+      form.set('budget', brief.budget);
+      if (brief.referenceFile) form.set('referenceFile', brief.referenceFile);
+      const res = await fetch('/api/custom-requests', { method: 'POST', body: form });
+      if (!res.ok) {
+        const error = await readError(res, 'Your brief could not be submitted');
+        addToast('Submission failed', error, 'error');
+        return { id: null, error };
+      }
+      const data = await res.json();
+      return { id: data.customRequest.id as string };
+    } catch {
+      const error = 'Could not reach the server. Your brief was NOT sent — please check your connection and try again.';
+      addToast('Submission failed', error, 'error');
+      return { id: null, error };
+    }
+  };
+
+  const updateCustomRequestStatus = async (id: string, status: DesignRequestStatus) => {
+    const res = await authFetch(`/api/admin/custom-requests/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
     if (res.ok) {
-      setCustomRequests((prev) => prev.map((req) => (req.id === id ? { ...req, status } : req)));
-      addToast('Status Updated', `Request #${id} marked as ${status}.`, 'info');
-    }
-  };
-
-  // Designer submissions
-  const addDesignerSubmission = async (
-    submission: Omit<DesignerSubmission, 'id' | 'submittedAt' | 'status'>
-  ) => {
-    const res = await authFetch('/api/designer-submissions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(submission),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setDesignerSubmissions((prev) => [data.submission, ...prev]);
-      addToast('Template Submitted!', 'Your submission has been queued for Graphics Expert review.', 'success');
+      setCustomRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+      addToast('Status updated', `Brief ${id} is now "${status}".`, 'info');
     } else {
-      addToast('Sign In Required', 'Please sign in as a Designer to submit.', 'error');
+      addToast('Update failed', await readError(res, 'Could not update the brief'), 'error');
     }
   };
 
-  const updateDesignerSubmissionStatus = async (
-    id: string,
-    status: DesignerSubmission['status'],
-    reviewNote?: string
-  ) => {
-    const res = await authFetch(`/api/admin/designer-submissions/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, reviewNote }),
-    });
+  const deleteCustomRequest = async (id: string) => {
+    const res = await authFetch(`/api/admin/custom-requests/${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (res.ok) {
-      setDesignerSubmissions((prev) =>
-        prev.map((sub) => (sub.id === id ? { ...sub, status, reviewNote } : sub))
-      );
-      addToast('Submission Updated', `Submission #${id} marked as ${status}.`, 'info');
+      setCustomRequests((prev) => prev.filter((r) => r.id !== id));
+      addToast('Brief deleted', `Brief ${id} was removed.`, 'info');
+      refreshAdminData();
+    } else {
+      addToast('Delete failed', await readError(res, 'Could not delete the brief'), 'error');
     }
   };
 
-  // Admin Upload & Product Management
+  const downloadBriefReference = async (id: string, fileName?: string) => {
+    const res = await authFetch(`/api/admin/custom-requests/${encodeURIComponent(id)}/reference`);
+    if (!res.ok) {
+      addToast('Download failed', await readError(res, 'Could not download the reference file'), 'error');
+      return;
+    }
+    saveBlob(await res.blob(), fileName || 'reference');
+  };
+
+  // ----- categories -----
+
+  const categoryRequest = async (path: string, method: string, body?: unknown) => {
+    const res = await authFetch(path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      addToast('Category error', await readError(res, 'The category could not be saved'), 'error');
+      return false;
+    }
+    await Promise.all([refreshMarketplace(), refreshAdminData()]);
+    return true;
+  };
+
+  const createCategory = (input: { name: string; description: string; iconName: string }) =>
+    categoryRequest('/api/admin/categories', 'POST', input);
+  const updateCategory = (id: string, input: { name: string; description: string; iconName: string }) =>
+    categoryRequest(`/api/admin/categories/${encodeURIComponent(id)}`, 'PUT', input);
+  const deleteCategory = (id: string) => categoryRequest(`/api/admin/categories/${encodeURIComponent(id)}`, 'DELETE');
+
+  // ----- admin design management -----
+
   const uploadNewDesign = async (formData: FormData) => {
     try {
-      const res = await authFetch('/api/admin/products', {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await authFetch('/api/admin/products', { method: 'POST', body: formData });
+      if (!res.ok) return { success: false, error: await readError(res, 'Upload failed') };
       const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Upload failed.' };
-      }
       await Promise.all([refreshAdminData(), refreshMarketplace()]);
-      addToast(
-        'Design Uploaded!',
-        `"${data.product.title}" saved (${data.product.status.toUpperCase()}).`,
-        'success'
-      );
-      return { success: true, product: data.product };
+      addToast('Design saved', `"${data.product.title}" saved as ${data.product.status}.`, 'success');
+      return { success: true, product: data.product as Product };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Network error during upload.' };
     }
@@ -718,51 +603,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateAdminDesign = async (id: string, formData: FormData) => {
     try {
-      const res = await authFetch(`/api/admin/products/${id}`, {
-        method: 'PUT',
-        body: formData,
-      });
+      const res = await authFetch(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'PUT', body: formData });
+      if (!res.ok) return { success: false, error: await readError(res, 'Update failed') };
       const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Update failed.' };
-      }
       await Promise.all([refreshAdminData(), refreshMarketplace()]);
-      addToast('Design Updated!', `"${data.product.title}" changes saved.`, 'success');
-      return { success: true, product: data.product };
+      addToast('Design updated', `"${data.product.title}" changes saved.`, 'success');
+      return { success: true, product: data.product as Product };
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Network error updating design.' };
+      return { success: false, error: err instanceof Error ? err.message : 'Network error while saving.' };
     }
   };
 
   const updateProductStatus = async (id: string, status: ProductStatus) => {
-    const res = await authFetch(`/api/admin/products/${id}/status`, {
+    const res = await authFetch(`/api/admin/products/${encodeURIComponent(id)}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
     if (res.ok) {
       await Promise.all([refreshAdminData(), refreshMarketplace()]);
-      addToast('Status Changed', `Design is now ${status.toUpperCase()}.`, 'success');
+      addToast('Status changed', `Design is now ${status}.`, 'success');
+    } else {
+      addToast('Status not changed', await readError(res, 'Could not change status'), 'error');
     }
   };
 
   const duplicateProduct = async (id: string) => {
-    const res = await authFetch(`/api/admin/products/${id}/duplicate`, {
-      method: 'POST',
-    });
+    const res = await authFetch(`/api/admin/products/${encodeURIComponent(id)}/duplicate`, { method: 'POST' });
     if (res.ok) {
       await refreshAdminData();
-      addToast('Design Duplicated', 'A draft copy with cloned files was created.', 'success');
+      addToast('Design duplicated', 'A draft copy was created.', 'success');
+    } else {
+      addToast('Duplicate failed', await readError(res, 'Could not duplicate the design'), 'error');
     }
   };
 
   const deleteProduct = async (id: string) => {
-    const res = await authFetch(`/api/admin/products/${id}`, {
-      method: 'DELETE',
-    });
+    const res = await authFetch(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (res.ok) {
       await Promise.all([refreshAdminData(), refreshMarketplace()]);
-      addToast('Design Deleted', 'Design and its private files were removed.', 'info');
+      addToast('Design deleted', 'The design and its files were removed.', 'info');
+    } else {
+      addToast('Delete failed', await readError(res, 'Could not delete the design'), 'error');
     }
   };
 
@@ -771,10 +653,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         currentUser,
         authToken,
-        switchRole,
         login,
-        register,
         logout,
+        changePassword,
         currentView,
         setCurrentView,
         selectedProductId,
@@ -785,49 +666,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         products,
         adminProducts,
         isLoadingProducts,
+        productsError,
         refreshMarketplace,
         refreshAdminData,
         storageStatus,
-        categories: dynamicCategories,
-        cart,
-        addToCart,
-        removeFromCart,
-        clearCart,
-        cartTotal,
-        cartSubtotal,
-        cartDiscount,
-        wishlist,
-        toggleWishlist,
-        isWishlisted,
-        orders,
-        createOrder,
-        coupons,
-        createCoupon,
-        deleteCoupon,
-        appliedCoupon,
-        applyCoupon,
-        removeCoupon,
+        adminStats,
+        categories,
+        createCategory,
+        updateCategory,
+        deleteCategory,
         customRequests,
         addCustomRequest,
         updateCustomRequestStatus,
-        designerSubmissions,
-        addDesignerSubmission,
-        updateDesignerSubmissionStatus,
+        deleteCustomRequest,
+        downloadBriefReference,
         uploadNewDesign,
         updateAdminDesign,
         updateProductStatus,
         duplicateProduct,
         deleteProduct,
+        downloadFreeFile,
+        downloadAdminFile,
         searchQuery,
         setSearchQuery,
         toasts,
         addToast,
         removeToast,
         isAuthModalOpen,
-        authModalTab,
         openAuthModal,
         closeAuthModal,
-        downloadDigitalAsset,
       }}
     >
       {children}

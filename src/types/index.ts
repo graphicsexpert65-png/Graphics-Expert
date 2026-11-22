@@ -1,15 +1,11 @@
-export type UserRole = 'customer' | 'designer' | 'admin';
+export type UserRole = 'admin';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  avatarUrl?: string;
   country: string;
-  bio?: string;
-  balance?: number;
-  totalSales?: number;
   joinedDate: string;
 }
 
@@ -83,6 +79,8 @@ export interface Product {
   fileDownloadSize: string;
   createdAt: string;
   updatedAt: string;
+  /** Only present in admin responses. */
+  views?: number;
 }
 
 export interface Category {
@@ -94,51 +92,7 @@ export interface Category {
   templateCount: number;
 }
 
-export interface CartItem {
-  product: Product;
-  license: LicenseType;
-  price: number;
-}
-
-export interface Review {
-  id: string;
-  productId: string;
-  userName: string;
-  userAvatar?: string;
-  rating: number;
-  comment: string;
-  date: string;
-  verifiedPurchase: boolean;
-}
-
-export interface OrderItem {
-  id: string;
-  productId: string;
-  productTitle: string;
-  productThumbnail: string;
-  price: number;
-  license: LicenseType;
-  downloadToken: string;
-  downloadExpiresAt: string;
-  files?: DesignFileAsset[];
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  customerName: string;
-  customerEmail: string;
-  customerCountry: string;
-  items: OrderItem[];
-  subtotal: number;
-  discount: number;
-  total: number;
-  couponCode?: string;
-  paymentMethod: string;
-  paymentStatus: 'completed' | 'pending' | 'failed';
-  isDemoOrder?: boolean;
-  createdAt: string;
-}
+export type DesignRequestStatus = 'Pending' | 'In Review' | 'Quoted' | 'In Progress' | 'Completed';
 
 export interface CustomDesignRequest {
   id: string;
@@ -151,33 +105,9 @@ export interface CustomDesignRequest {
   deadline: string;
   budget: string;
   referenceFileName?: string;
-  status: 'Pending' | 'In Review' | 'Quoted' | 'In Progress' | 'Completed';
+  hasReferenceFile?: boolean;
+  status: DesignRequestStatus;
   createdAt: string;
-}
-
-export interface DesignerSubmission {
-  id: string;
-  designerId: string;
-  designerName: string;
-  title: string;
-  category: string;
-  price: number;
-  fileFormats: FileFormat[];
-  dimensions: string;
-  status: 'Draft' | 'Pending Review' | 'Approved' | 'Rejected';
-  reviewNote?: string;
-  previewUrl: string;
-  submittedAt: string;
-}
-
-export interface Coupon {
-  id: string;
-  code: string;
-  discountType: 'percentage' | 'fixed';
-  value: number;
-  expiry: string;
-  minOrder: number;
-  active: boolean;
 }
 
 export interface StorageConfigStatus {
@@ -190,18 +120,22 @@ export interface StorageConfigStatus {
   s3Configured: boolean;
 }
 
+export interface AdminStats {
+  published: number;
+  drafts: number;
+  categories: number;
+  totalViews: number;
+  pendingBriefs: number;
+  recentUploads: Array<{ id: string; title: string; status: ProductStatus; createdAt: string }>;
+  recentBriefs: CustomDesignRequest[];
+}
+
 export type ViewState =
   | 'home'
   | 'marketplace'
   | 'product-detail'
-  | 'cart'
-  | 'checkout'
-  | 'dashboard'
   | 'tools'
   | 'custom-design'
-  | 'pricing'
-  | 'become-designer'
-  | 'designer-dashboard'
   | 'admin-dashboard'
   | 'about'
   | 'contact'

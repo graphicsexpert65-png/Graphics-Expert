@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ProductCard } from '../components/ProductCard';
+import { AppLink } from '../components/AppLink';
 import {
   UtensilsCrossed,
   Briefcase,
@@ -18,18 +19,62 @@ import {
   Sparkles,
   Receipt,
   ArrowRight,
-  ShieldCheck,
-  Download,
+  Search,
   Printer,
-  Upload,
-  Plus,
+  Package,
+  Palette,
+  FileCode2,
+  Wrench,
+  Mail,
+  Inbox,
 } from 'lucide-react';
 
-export const HomeView: React.FC = () => {
-  const { products, categories, setCurrentView, currentUser } = useApp();
+const SERVICES = [
+  { title: 'Logo design', icon: <PenTool className="w-5 h-5" /> },
+  { title: 'Business cards', icon: <CreditCard className="w-5 h-5" /> },
+  { title: 'Banner & panaflex', icon: <Flag className="w-5 h-5" /> },
+  { title: 'Social media designs', icon: <Share2 className="w-5 h-5" /> },
+  { title: 'Printing designs', icon: <Printer className="w-5 h-5" /> },
+  { title: 'Packaging design', icon: <Package className="w-5 h-5" /> },
+  { title: 'General graphic design', icon: <Palette className="w-5 h-5" /> },
+];
 
-  const featuredProducts = products.filter((p) => p.featured).slice(0, 8);
-  const displayProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 8);
+const REASONS = [
+  {
+    title: 'Editable source files',
+    text: 'Designs come as original CorelDRAW, Illustrator and Photoshop files, not flattened images.',
+    icon: <FileCode2 className="w-5 h-5" />,
+  },
+  {
+    title: 'Made for print',
+    text: 'Layouts are built around real print sizes, so they are ready for the press shop.',
+    icon: <Printer className="w-5 h-5" />,
+  },
+  {
+    title: 'Free browser tools',
+    text: 'Resize, compress and convert images in your browser. Your files are never uploaded.',
+    icon: <Wrench className="w-5 h-5" />,
+  },
+  {
+    title: 'Custom work on request',
+    text: 'Need something specific? Send a brief and get a quote directly from the designer.',
+    icon: <Mail className="w-5 h-5" />,
+  },
+];
+
+export const HomeView: React.FC = () => {
+  const { products, categories, setCurrentView, setSearchQuery, isLoadingProducts, productsError } = useApp();
+  const [query, setQuery] = useState('');
+
+  const featuredProducts = useMemo(() => products.filter((p) => p.featured).slice(0, 8), [products]);
+  const latestProducts = useMemo(
+    () => [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8),
+    [products]
+  );
+  const popularCategories = useMemo(
+    () => [...categories].sort((a, b) => b.templateCount - a.templateCount).slice(0, 8),
+    [categories]
+  );
 
   const getCategoryIcon = (iconName: string) => {
     switch (iconName) {
@@ -52,244 +97,176 @@ export const HomeView: React.FC = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(query.trim());
+    setCurrentView('marketplace');
+  };
+
+  const sectionHeader = (title: string, subtitle: string, linkLabel: string, onClick: () => void) => (
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+      <div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#0B1F3A] font-display tracking-tight">{title}</h2>
+        <p className="text-sm text-slate-600 mt-1 max-w-2xl">{subtitle}</p>
+      </div>
+      <button
+        onClick={onClick}
+        className="text-sm font-semibold text-[#17365D] hover:underline flex items-center gap-1 self-start sm:self-auto shrink-0"
+      >
+        <span>{linkLabel}</span>
+        <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
+  const wrap = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8';
+
   return (
-    <div className="space-y-16 lg:space-y-24 pb-16">
-      {/* 1. HERO SECTION */}
-      <section className="relative isolate overflow-hidden pt-10 sm:pt-16 pb-14 bg-[#f3f5f9] border-b border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Copy */}
-            <div className="lg:col-span-7 space-y-6 relative z-10">
-              <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wide text-slate-700 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-[#0F172A]" />
-                <span>GRAPHICS EXPERT · Creative Designs. Professional Tools.</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-bold text-[#0F172A] tracking-[-0.025em] font-display text-balance leading-[1.04] max-w-3xl">
-                Design smarter. <span className="text-[#142B4A]">Create without limits.</span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-600 max-w-xl leading-8">
-                Discover editable print-ready templates, practical browser tools, and custom graphic design services—all in one creative workspace.
-              </p>
-
-              {/* CTAs */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => setCurrentView('marketplace')}
-                  className="px-6 py-3.5 bg-[#0F172A] hover:bg-blue-950 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/15 transition-all flex items-center gap-2 hover:-translate-y-0.5"
-                >
-                  <span>Explore Marketplace</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => setCurrentView('tools')}
-                  className="px-6 py-3.5 bg-white hover:bg-white text-slate-800 border border-slate-300 rounded-xl text-sm font-bold transition-all shadow-sm hover:-translate-y-0.5"
-                >
-                  Try Free Tools
-                </button>
-
-                {currentUser?.role === 'admin' && (
-                  <button
-                    onClick={() => setCurrentView('admin-dashboard')}
-                    className="px-5 py-3.5 bg-[#142B4A] hover:bg-[#0B1B32] text-white rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>Upload Design</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="pt-4 flex flex-wrap items-center gap-5 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Original Unflattened Source Files</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Download className="w-4 h-4 text-[#142B4A]" />
-                  <span>Protected Signed Downloads</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Printer className="w-4 h-4 text-[#0F172A]" />
-                  <span>CorelDRAW (.CDR), AI, EPS & PSD</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Studio Architecture Showcase */}
-            <div className="lg:col-span-5 relative z-10">
-              <div className="rounded-[1.75rem] bg-[#101b32] text-white border border-slate-700/70 shadow-[0_30px_80px_-25px_rgba(15,23,42,0.55)] p-6 sm:p-7 space-y-5 relative overflow-hidden">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-200">
-                      Multi-Format Digital Studio
-                    </p>
-                    <h2 className="text-lg font-bold font-display mt-0.5">
-                      Supported Editable Source Formats
-                    </h2>
-                  </div>
-                  <span className="text-xs font-mono text-slate-400">300 DPI · CMYK</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
-                    <span className="font-mono font-bold text-slate-200">.CDR</span>
-                    <p className="font-semibold text-white mt-1">CorelDRAW</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Panaflex, Wedding & Visiting Cards</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
-                    <span className="font-mono font-bold text-slate-200">.AI / .EPS</span>
-                    <p className="font-semibold text-white mt-1">Adobe Illustrator</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Scalable Press & Brand Vectors</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
-                    <span className="font-mono font-bold text-sky-400">.PSD / .PSB</span>
-                    <p className="font-semibold text-white mt-1">Adobe Photoshop</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Smart Object Print & Social Kits</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:bg-white/[0.09] transition-colors">
-                    <span className="font-mono font-bold text-emerald-400">.PDF / .TIFF / .ZIP</span>
-                    <p className="font-semibold text-white mt-1">Print & Bundles</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Multi-format Press Archives</p>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between text-xs border-t border-slate-800">
-                  <span className="text-slate-400">
-                    {products.length > 0
-                      ? `${products.length} published design${products.length === 1 ? '' : 's'} live`
-                      : 'Marketplace ready for original uploads'}
-                  </span>
-                  <button
-                    onClick={() => setCurrentView(currentUser?.role === 'admin' ? 'admin-dashboard' : 'marketplace')}
-                    className="text-slate-200 hover:text-slate-200 font-semibold flex items-center gap-1"
-                  >
-                    <span>{currentUser?.role === 'admin' ? 'Open Admin Studio' : 'Browse Store'}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-5 relative z-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { value: 'Editable source files', label: 'Keep control of your designs', icon: <Layers className="w-5 h-5" /> },
-            { value: 'Print-ready quality', label: 'CMYK, dimensions & 300 DPI', icon: <Printer className="w-5 h-5" /> },
-            { value: 'Free browser tools', label: 'Useful utilities, right in your browser', icon: <Sparkles className="w-5 h-5" /> },
-          ].map((item) => (
-            <div key={item.value} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-              <span className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center">{item.icon}</span>
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-slate-900">{item.value}</span>
-                <span className="block text-xs text-slate-500 mt-0.5">{item.label}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 2. CATEGORY SECTION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 font-display tracking-tight">
-              Explore Design Categories
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Specialized print press and vector categories crafted for businesses and commercial designers.
+    <div className="space-y-14 lg:space-y-20 pb-16">
+      {/* 1. HERO + 2. INTRODUCTION + 3. SEARCH */}
+      <section className="bg-[#0B1F3A] text-white">
+        <div className={`${wrap} py-14 sm:py-20`}>
+          <div className="max-w-3xl space-y-6">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-300">
+              Graphics Expert · Graphic design resources &amp; services
             </p>
-          </div>
-          <button
-            onClick={() => setCurrentView('marketplace')}
-            className="text-xs font-semibold text-[#142B4A] hover:text-[#142B4A] flex items-center gap-1 self-start sm:self-auto"
-          >
-            <span>Browse All Categories</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-display leading-[1.08] text-balance">
+              Editable design files and custom graphic design
+            </h1>
+            <p className="text-base sm:text-lg text-slate-200 leading-8 max-w-2xl">
+              Download original CorelDRAW, Illustrator and Photoshop designs for cards, banners, menus and flyers, use
+              free browser tools, or order a custom design made for your business.
+            </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setCurrentView('marketplace', { categoryId: cat.id })}
-              className="p-4 bg-white rounded-xl border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all text-left group flex flex-col justify-between"
-            >
-              <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-[#0F172A] group-hover:text-white transition-colors flex items-center justify-center mb-3">
-                {getCategoryIcon(cat.iconName)}
+            <form onSubmit={handleSearch} role="search" className="flex flex-col sm:flex-row gap-3 max-w-2xl pt-2">
+              <label htmlFor="home-search" className="sr-only">
+                Search designs
+              </label>
+              <div className="relative flex-1">
+                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  id="home-search"
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search designs, e.g. wedding card, menu, banner"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white text-slate-900 placeholder:text-slate-500 text-base focus:outline-none focus:ring-4 focus:ring-sky-300/40"
+                />
               </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 group-hover:text-[#142B4A] transition-colors line-clamp-1">
-                  {cat.name}
-                </h3>
-                <span className="text-[11px] text-slate-400 tabular-nums">
+              <button
+                type="submit"
+                className="px-6 py-3.5 rounded-xl bg-white text-[#0B1F3A] font-bold hover:bg-slate-100 transition-colors"
+              >
+                Search
+              </button>
+            </form>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                onClick={() => setCurrentView('marketplace')}
+                className="px-6 py-3 border border-white/40 hover:bg-white/10 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
+              >
+                <span>Browse marketplace</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setCurrentView('custom-design')}
+                className="px-6 py-3 border border-white/40 hover:bg-white/10 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                Order a custom design
+              </button>
+              <button
+                onClick={() => setCurrentView('tools')}
+                className="px-2 py-3 text-sky-200 hover:text-white text-sm font-semibold underline-offset-4 hover:underline"
+              >
+                Free tools
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. POPULAR CATEGORIES */}
+      <section className={wrap} aria-labelledby="home-categories">
+        {sectionHeader(
+          'Popular design categories',
+          'Find the right starting point for your print or digital project.',
+          'All designs',
+          () => setCurrentView('marketplace')
+        )}
+        <h2 id="home-categories" className="sr-only">
+          Design categories
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          {popularCategories.map((cat) => (
+            <AppLink
+              key={cat.id}
+              view="marketplace"
+              categoryId={cat.id}
+              className="p-4 bg-white rounded-xl border border-slate-200 hover:border-[#17365D] hover:shadow-md transition-all group flex items-center gap-3"
+            >
+              <span className="w-10 h-10 shrink-0 rounded-lg bg-[#EAF0F8] text-[#17365D] group-hover:bg-[#17365D] group-hover:text-white transition-colors flex items-center justify-center">
+                {getCategoryIcon(cat.iconName)}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-[#0B1F3A] line-clamp-1">{cat.name}</span>
+                <span className="block text-xs text-slate-500 tabular-nums">
                   {cat.templateCount} {cat.templateCount === 1 ? 'design' : 'designs'}
                 </span>
-              </div>
-            </button>
+              </span>
+            </AppLink>
           ))}
         </div>
       </section>
 
-      {/* 3. FEATURED DESIGNS SECTION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 font-display tracking-tight">
-              Featured Designs
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Original editable graphic design packages published by Graphics Expert.
-            </p>
+      {/* 5. FEATURED DESIGNS */}
+      {featuredProducts.length > 0 && (
+        <section className={wrap}>
+          {sectionHeader(
+            'Featured designs',
+            'Hand-picked editable designs from Graphics Expert.',
+            'View marketplace',
+            () => setCurrentView('marketplace')
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
-          <button
-            onClick={() => setCurrentView('marketplace')}
-            className="text-xs font-semibold text-[#142B4A] hover:text-[#142B4A] flex items-center gap-1 self-start sm:self-auto"
-          >
-            <span>View Full Marketplace</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        </section>
+      )}
 
-        {displayProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {displayProducts.map((product) => (
+      {/* 6. LATEST UPLOADS */}
+      <section className={wrap}>
+        {sectionHeader(
+          'Latest uploads',
+          'The newest designs added to the marketplace.',
+          'See all designs',
+          () => setCurrentView('marketplace')
+        )}
+        {latestProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {latestProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-            {currentUser?.role === 'admin' ? (
-              <>
-                <h3 className="text-lg font-bold text-slate-900 font-display">
-                  Start Building Your Marketplace
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                  Upload your first original design to begin selling.
-                </p>
-                <div className="pt-2">
-                  <button
-                    onClick={() => setCurrentView('admin-dashboard')}
-                    className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Upload Design</span>
-                  </button>
-                </div>
-              </>
+          <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-[#EAF0F8] text-[#17365D] mx-auto flex items-center justify-center">
+              <Inbox className="w-6 h-6" />
+            </div>
+            {isLoadingProducts ? (
+              <p className="text-sm text-slate-600">Loading designs…</p>
+            ) : productsError ? (
+              <p role="alert" className="text-sm text-red-700">
+                {productsError}
+              </p>
             ) : (
               <>
-                <h3 className="text-lg font-bold text-slate-900 font-display">
-                  No Designs Available Yet
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                  New creative designs are coming soon. Check back later.
+                <h3 className="font-bold text-[#0B1F3A] font-display">New designs are on the way</h3>
+                <p className="text-sm text-slate-600 max-w-md mx-auto">
+                  No designs are published yet. In the meantime you can use the free tools or send a brief for a custom
+                  design.
                 </p>
               </>
             )}
@@ -297,120 +274,82 @@ export const HomeView: React.FC = () => {
         )}
       </section>
 
-      {/* 4. CORELDRAW SPOTLIGHT BANNER */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-[#0F172A] text-white rounded-2xl p-6 sm:p-8 lg:p-10 border border-slate-700 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
-          <div className="space-y-3 z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#0F172A]/20 text-slate-200 text-xs font-semibold uppercase tracking-wider border border-slate-700">
-              <span className="w-2 h-2 rounded-full bg-white"></span>
-              CorelDRAW (.CDR) & Print Press Specialists
+      {/* 7. GRAPHIC DESIGN SERVICES */}
+      <section className="bg-[#EAF0F8] py-14" aria-labelledby="home-services">
+        <div className={wrap}>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div>
+              <h2 id="home-services" className="text-2xl sm:text-3xl font-bold text-[#0B1F3A] font-display tracking-tight">
+                Graphic design services
+              </h2>
+              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                Custom artwork for your business, prepared for print and screen.
+              </p>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-white">
-              Commercial Panaflex, Wedding Cards & Standee Banners in Native CorelDRAW
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Original editable vector files (.CDR, .AI, .EPS) alongside layered Photoshop (.PSD, .PSB) and press-ready PDFs. Preserved untouched for Pakistani and international offset printing houses.
-            </p>
+            <button
+              onClick={() => setCurrentView('custom-design')}
+              className="text-sm font-semibold text-[#17365D] hover:underline flex items-center gap-1 self-start sm:self-auto"
+            >
+              <span>View services</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {SERVICES.map((service) => (
+              <AppLink
+                key={service.title}
+                view="custom-design"
+                className="p-4 bg-white rounded-xl border border-[#C7D4E5] hover:border-[#17365D] hover:shadow-md transition-all flex items-center gap-3"
+              >
+                <span className="w-10 h-10 shrink-0 rounded-lg bg-[#EAF0F8] text-[#17365D] flex items-center justify-center">
+                  {service.icon}
+                </span>
+                <span className="text-sm font-semibold text-[#0B1F3A]">{service.title}</span>
+              </AppLink>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="z-10 shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
+      {/* 8. WHY CHOOSE GRAPHICS EXPERT */}
+      <section className={wrap} aria-labelledby="home-why">
+        <h2 id="home-why" className="text-2xl sm:text-3xl font-bold text-[#0B1F3A] font-display tracking-tight mb-6">
+          Why choose Graphics Expert
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {REASONS.map((reason) => (
+            <div key={reason.title} className="p-5 bg-white rounded-2xl border border-slate-200 space-y-3">
+              <span className="w-10 h-10 rounded-xl bg-[#17365D] text-white flex items-center justify-center">
+                {reason.icon}
+              </span>
+              <h3 className="font-bold text-[#0B1F3A] font-display">{reason.title}</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{reason.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 9. CALL TO ACTION */}
+      <section className={wrap}>
+        <div className="bg-[#0B1F3A] rounded-3xl px-6 py-10 sm:px-12 sm:py-14 text-center text-white space-y-5">
+          <h2 className="text-2xl sm:text-3xl font-bold font-display">Ready to start your next design project?</h2>
+          <p className="text-slate-200 max-w-xl mx-auto">
+            Browse ready-made editable designs, or tell us what you need and get a quote for a custom design.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
             <button
               onClick={() => setCurrentView('marketplace')}
-              className="px-6 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2"
+              className="px-6 py-3 bg-white hover:bg-slate-100 text-[#0B1F3A] rounded-xl font-bold transition-colors"
             >
-              <span>Browse Marketplace</span>
-              <ArrowRight className="w-4 h-4" />
+              Browse designs
             </button>
             <button
               onClick={() => setCurrentView('custom-design')}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all border border-white/20 text-center"
+              className="px-6 py-3 border border-white/40 hover:bg-white/10 text-white rounded-xl font-semibold transition-colors"
             >
-              Request Custom Design
+              Send a design brief
             </button>
           </div>
-        </div>
-      </section>
-
-      {/* 5. FREE TOOLS PROMOTIONAL BANNER */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#0F172A] text-white rounded-2xl p-8 lg:p-12 relative overflow-hidden shadow-xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-            <div className="lg:col-span-7 space-y-4">
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                100% Free & In-Browser
-              </span>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-display leading-tight">
-                Resize, Compress, and Convert Images in Seconds.
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                Zero file uploads to external servers. Use the Graphics Expert image resizer with DPI math, instant JPG/PNG converter, and multi-image PDF compiler directly on your machine.
-              </p>
-
-              <div className="pt-2 flex flex-wrap gap-3">
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'resizer' })}
-                  className="px-5 py-2.5 bg-[#142B4A] hover:bg-[#27496F] text-white rounded-lg text-xs font-semibold transition-colors"
-                >
-                  Open Image Resizer
-                </button>
-                <button
-                  onClick={() => setCurrentView('tools', { toolId: 'image-to-pdf' })}
-                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors border border-slate-700"
-                >
-                  Create Multi-Page PDF
-                </button>
-                <button
-                  onClick={() => setCurrentView('tools')}
-                  className="px-5 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold transition-colors"
-                >
-                  See All Free Tools →
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
-                <p className="font-semibold text-white">Image Resizer</p>
-                <p className="text-[11px] text-slate-400 mt-1">Inches, CM, & DPI math</p>
-              </div>
-              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
-                <p className="font-semibold text-white">Lossless Compressor</p>
-                <p className="text-[11px] text-slate-400 mt-1">Up to 80% file reduction</p>
-              </div>
-              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
-                <p className="font-semibold text-white">Image to PDF Maker</p>
-                <p className="text-[11px] text-slate-400 mt-1">A4, Letter & Margins</p>
-              </div>
-              <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700">
-                <p className="font-semibold text-white">Print Calculator</p>
-                <p className="text-[11px] text-slate-400 mt-1">Precise pixel-to-DPI formula</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. CUSTOM DESIGN SERVICE CALLOUT */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-8 sm:p-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="max-w-2xl space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#142B4A]">
-              Custom Graphic Design Services
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display">
-              Need Something Unique? We'll Design It for You.
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              From bespoke restaurant menus and Panaflex banners to Urdu/English corporate stationery in CorelDRAW, Illustrator, or Photoshop.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setCurrentView('custom-design')}
-            className="px-6 py-3.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm whitespace-nowrap"
-          >
-            Submit Design Brief
-          </button>
         </div>
       </section>
     </div>

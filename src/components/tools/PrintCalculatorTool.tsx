@@ -41,7 +41,7 @@ export const PrintCalculatorTool: React.FC = () => {
             Calculate exact pixel specifications required for press-ready flyers, business cards, billboards, and fine art prints.
           </p>
         </div>
-        <div className="text-xs text-amber-700 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200 self-start md:self-auto font-medium flex items-center gap-1.5">
+        <div className="text-xs text-[#17365D] bg-[#EAF0F8] px-3 py-1 rounded-lg border border-[#C7D4E5] self-start md:self-auto font-medium flex items-center gap-1.5">
           <Printer className="w-3.5 h-3.5" />
           Commercial Print Standards (CMYK)
         </div>
@@ -120,7 +120,7 @@ export const PrintCalculatorTool: React.FC = () => {
                   onClick={() => setDpi(d.val)}
                   className={`py-2 px-2 text-center rounded-lg border transition-colors ${
                     dpi === d.val
-                      ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                      ? 'bg-[#17365D] text-white border-[#17365D] font-semibold'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >

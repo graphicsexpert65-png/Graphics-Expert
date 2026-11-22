@@ -135,7 +135,7 @@ export const SocialSizeTool: React.FC = () => {
             Resize and fit photos to verified dimension presets for Instagram, YouTube, Facebook, LinkedIn and WhatsApp.
           </p>
         </div>
-        <div className="text-xs text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200 self-start md:self-auto font-medium">
+        <div className="text-xs text-[#17365D] bg-[#EAF0F8] px-3 py-1 rounded-lg border border-[#C7D4E5] self-start md:self-auto font-medium">
           Instant Crop & Canvas Export
         </div>
       </div>
@@ -152,7 +152,7 @@ export const SocialSizeTool: React.FC = () => {
               onClick={() => handlePresetSelect(p)}
               className={`p-2.5 rounded-xl border text-left transition-all ${
                 selectedPreset.id === p.id
-                  ? 'border-blue-600 bg-blue-50/60 ring-1 ring-blue-600 text-blue-950'
+                  ? 'border-[#17365D] bg-[#EAF0F8]/60 ring-1 ring-[#17365D] text-[#17365D]'
                   : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
               }`}
             >

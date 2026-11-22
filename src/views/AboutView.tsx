@@ -8,7 +8,7 @@ export const AboutView: React.FC = () => {
   return (
     <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-12">
       <div className="space-y-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[#17365D]">
           About Graphics Expert
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-display tracking-tight">
@@ -21,7 +21,7 @@ export const AboutView: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
         <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">1</div>
+          <div className="w-8 h-8 rounded-lg bg-[#EAF0F8] text-[#17365D] flex items-center justify-center font-bold">1</div>
           <h3 className="font-bold text-slate-900 text-sm">Ready-Made Templates</h3>
           <p className="text-slate-500 leading-relaxed">
             Instant editable Photoshop, Illustrator, and Canva assets built to commercial 300 DPI CMYK standards.
@@ -37,7 +37,7 @@ export const AboutView: React.FC = () => {
         </div>
 
         <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">3</div>
+          <div className="w-8 h-8 rounded-lg bg-[#EAF0F8] text-[#17365D] flex items-center justify-center font-bold">3</div>
           <h3 className="font-bold text-slate-900 text-sm">Bespoke Services</h3>
           <p className="text-slate-500 leading-relaxed">
             Professional graphic design studio offering direct custom briefs for local Pakistani businesses and global clients.

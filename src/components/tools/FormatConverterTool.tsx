@@ -84,7 +84,7 @@ export const FormatConverterTool: React.FC<{ initialMode?: 'jpg-to-png' | 'png-t
             Convert JPG, PNG, and WEBP formats instantaneously with local hardware acceleration.
           </p>
         </div>
-        <div className="text-xs text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-200 self-start md:self-auto font-medium">
+        <div className="text-xs text-[#17365D] bg-[#EAF0F8] px-3 py-1 rounded-lg border border-[#C7D4E5] self-start md:self-auto font-medium">
           Supports Transparent Alpha Channels
         </div>
       </div>

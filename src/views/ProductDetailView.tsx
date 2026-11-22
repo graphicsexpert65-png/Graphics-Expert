@@ -1,503 +1,321 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ProductCard } from '../components/ProductCard';
-import { LicenseType } from '../types';
-import {
-  ArrowLeft,
-  ShoppingCart,
-  Zap,
-  Heart,
-  Star,
-  CheckCircle2,
-  FileCheck,
-  Shield,
-  Printer,
-  ZoomIn,
-  X,
-  FileCode2,
-  Image as ImageIcon,
-} from 'lucide-react';
+import { AppLink } from '../components/AppLink';
+import { ArrowLeft, Download, Printer, FileCheck, ZoomIn, X, Mail, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 
 export const ProductDetailView: React.FC = () => {
-  const {
-    products,
-    adminProducts,
-    currentUser,
-    selectedProductId,
-    setCurrentView,
-    addToCart,
-    toggleWishlist,
-    isWishlisted,
-  } = useApp();
+  const { products, adminProducts, currentUser, selectedProductId, isLoadingProducts, downloadFreeFile, downloadAdminFile } =
+    useApp();
 
   const product =
-    products.find((p) => p.id === selectedProductId) ||
-    (currentUser?.role === 'admin' ? adminProducts.find((p) => p.id === selectedProductId) : undefined) ||
-    products[0];
+    products.find((p) => p.id === selectedProductId || p.slug === selectedProductId) ||
+    (currentUser?.role === 'admin'
+      ? adminProducts.find((p) => p.id === selectedProductId || p.slug === selectedProductId)
+      : undefined);
 
-  const [selectedLicense, setSelectedLicense] = useState<LicenseType>('Commercial');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   if (!product) {
     return (
       <div className="py-20 px-4 max-w-2xl mx-auto text-center space-y-4">
-        <h2 className="text-2xl font-bold text-slate-900 font-display">No Designs Available Yet</h2>
-        <p className="text-xs sm:text-sm text-slate-500">
-          New creative designs are coming soon. Check back later.
-        </p>
-        <button
-          onClick={() => setCurrentView('marketplace')}
-          className="px-5 py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-semibold"
-        >
-          Back to Marketplace
-        </button>
+        <h1 className="text-2xl font-bold text-[#0B1F3A] font-display">
+          {isLoadingProducts ? 'Loading design…' : 'Design not found'}
+        </h1>
+        {!isLoadingProducts && (
+          <>
+            <p className="text-slate-600">This design may have been removed or is not published.</p>
+            <AppLink view="marketplace" className="inline-block px-5 py-3 bg-[#17365D] hover:bg-[#0B1F3A] text-white rounded-xl text-sm font-semibold">
+              Browse all designs
+            </AppLink>
+          </>
+        )}
       </div>
     );
   }
 
-  const wishlisted = isWishlisted(product.id);
-  const basePrice = product.discountPrice ?? product.price;
-  const currentPrice =
-    selectedLicense === 'Extended Commercial' ? Number((basePrice * 2.5).toFixed(2)) : basePrice;
-
+  const isFree = product.price === 0;
+  const isPublished = product.status === 'published';
+  const displayPrice = product.discountPrice ?? product.price;
   const activeImageSrc = product.galleryImages[activeImageIndex] || product.previewUrl;
   const packageFiles = (product.files || []).filter((f) => f.includedInPackage);
-  const relatedProducts = products
-    .filter((p) => p.categoryId === product.categoryId && p.id !== product.id)
-    .slice(0, 3);
+  const relatedProducts = products.filter((p) => p.categoryId === product.categoryId && p.id !== product.id).slice(0, 3);
+  const mailSubject = encodeURIComponent(`Purchase enquiry: ${product.title}`);
+  const mailBody = encodeURIComponent(`Hello Graphics Expert,\n\nI would like to buy the design "${product.title}".\n\nPlease share the payment details.`);
 
-  const handleBuyNow = () => {
-    addToCart(product, selectedLicense);
-    setCurrentView('checkout');
+  const handleDownload = async (fileId: string, fileName: string) => {
+    setDownloading(fileId);
+    if (isPublished) await downloadFreeFile(product, fileId, fileName);
+    else await downloadAdminFile(product.id, fileId, fileName);
+    setDownloading(null);
   };
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
-      {/* Draft/Unpublished Banner for Admin Preview */}
-      {product.status !== 'published' && (
-        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+      {!isPublished && (
+        <div role="status" className="p-4 rounded-xl bg-[#EAF0F8] border border-[#C7D4E5] text-[#0B1F3A] text-sm flex flex-wrap items-center justify-between gap-2">
           <span>
-            <strong>Admin Preview Mode:</strong> This design is currently{' '}
-            <span className="uppercase font-bold">{product.status}</span> and is not visible to public buyers.
+            <strong>Admin preview:</strong> this design is <span className="uppercase font-bold">{product.status}</span> and is not visible to the public.
           </span>
-          <button
-            onClick={() => setCurrentView('admin-dashboard')}
-            className="font-semibold underline"
-          >
-            Return to My Designs
-          </button>
+          <AppLink view="admin-dashboard" className="font-semibold underline">
+            Back to admin
+          </AppLink>
         </div>
       )}
 
-      {/* Breadcrumb Navigation */}
-      <nav className="flex items-center gap-2 text-xs text-slate-500">
-        <button
-          onClick={() => setCurrentView('marketplace')}
-          className="hover:text-slate-900 transition-colors flex items-center gap-1 font-medium"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Marketplace</span>
-        </button>
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        <AppLink view="marketplace" className="hover:text-[#0B1F3A] flex items-center gap-1 font-medium">
+          <ArrowLeft className="w-4 h-4" />
+          Designs
+        </AppLink>
         <span aria-hidden="true">/</span>
-        <button
-          onClick={() => setCurrentView('marketplace', { categoryId: product.categoryId })}
-          className="hover:text-slate-900 transition-colors"
-        >
+        <AppLink view="marketplace" categoryId={product.categoryId} className="hover:text-[#0B1F3A]">
           {product.categoryName}
-        </button>
+        </AppLink>
         <span aria-hidden="true">/</span>
-        <span className="text-slate-900 font-semibold truncate max-w-xs">{product.title}</span>
+        <span className="text-[#0B1F3A] font-semibold truncate max-w-[16rem]">{product.title}</span>
       </nav>
 
-      {/* Main PDP Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        {/* Left Column: Image Preview Gallery */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/90 shadow-sm relative flex items-center justify-center group">
+          <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm relative flex items-center justify-center">
             {activeImageSrc ? (
               <>
                 <img
                   src={activeImageSrc}
-                  alt={product.title}
-                  referrerPolicy="no-referrer"
+                  alt={`${product.title} — ${product.categoryName} design preview`}
                   onClick={() => setIsZoomOpen(true)}
                   className="w-full h-full object-cover object-center cursor-zoom-in"
                 />
                 <button
                   type="button"
                   onClick={() => setIsZoomOpen(true)}
-                  className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md"
+                  className="absolute bottom-4 right-4 px-3 py-2 rounded-lg bg-[#0B1F3A]/85 hover:bg-[#0B1F3A] text-white text-xs font-semibold flex items-center gap-1.5 shadow-md"
                 >
-                  <ZoomIn className="w-3.5 h-3.5" />
-                  <span>Zoom Preview</span>
+                  <ZoomIn className="w-4 h-4" />
+                  Zoom
                 </button>
               </>
             ) : (
               <div className="text-center text-slate-400 p-8">
                 <ImageIcon className="w-10 h-10 mx-auto mb-2" />
-                <p className="text-xs font-medium">Preview Image Not Provided</p>
+                <p className="text-sm font-medium">No preview image</p>
               </div>
             )}
-
-            <button
-              onClick={() => toggleWishlist(product.id)}
-              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 hover:bg-white shadow-md text-slate-600 hover:text-rose-600 transition-colors"
-              aria-label={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
-            >
-              <Heart className={`w-5 h-5 ${wishlisted ? 'fill-rose-600 text-rose-600' : ''}`} />
-            </button>
           </div>
 
-          {/* Gallery Thumbnails */}
           {product.galleryImages.length > 1 && (
             <div className="flex gap-3 flex-wrap">
               {product.galleryImages.map((img, idx) => (
                 <button
-                  key={idx}
+                  key={img}
                   onClick={() => setActiveImageIndex(idx)}
+                  aria-label={`Show preview ${idx + 1}`}
                   className={`w-20 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                    activeImageIndex === idx
-                      ? 'border-slate-900 ring-2 ring-slate-900/10'
-                      : 'border-slate-200 opacity-70 hover:opacity-100'
+                    activeImageIndex === idx ? 'border-[#17365D] ring-2 ring-[#17365D]/15' : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={img} alt="Gallery preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>
           )}
 
-          {/* Quick Highlights Guarantee */}
-          <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50/80 rounded-xl border border-slate-200 text-xs">
-            <div className="flex items-center gap-2">
-              <Printer className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-white rounded-xl border border-slate-200 text-sm">
+            <div className="flex items-center gap-3">
+              <Printer className="w-5 h-5 text-[#17365D] shrink-0" />
               <div>
-                <p className="font-semibold text-slate-900">
-                  {product.dpi} DPI {product.colorMode}
+                <p className="font-semibold text-[#0B1F3A]">
+                  {product.dpi} DPI · {product.colorMode}
                 </p>
-                <p className="text-[11px] text-slate-500">Print Specifications</p>
+                <p className="text-xs text-slate-500">Print specifications</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
+            <div className="flex items-center gap-3">
+              <FileCheck className="w-5 h-5 text-[#17365D] shrink-0" />
               <div>
-                <p className="font-semibold text-slate-900">Original Masters</p>
-                <p className="text-[11px] text-slate-500">Preserved Unflattened</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-indigo-600 shrink-0" />
-              <div>
-                <p className="font-semibold text-slate-900">Protected Delivery</p>
-                <p className="text-[11px] text-slate-500">Signed Download Token</p>
+                <p className="font-semibold text-[#0B1F3A]">Original source files</p>
+                <p className="text-xs text-slate-500">Fully editable, not flattened</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Purchase Module */}
         <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
           <div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mb-2 flex-wrap">
-              <span className="font-semibold text-slate-800">{product.categoryName}</span>
+            <div className="flex items-center gap-2 text-sm text-slate-500 mb-2 flex-wrap">
+              <span className="font-semibold text-[#0B1F3A]">{product.categoryName}</span>
               {product.subcategory && (
                 <>
                   <span aria-hidden="true">·</span>
                   <span>{product.subcategory}</span>
                 </>
               )}
-              <span aria-hidden="true">·</span>
-              <span>By {product.designerName}</span>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 font-display tracking-tight leading-snug">
-              {product.title}
-            </h1>
-
-            <div className="flex items-center gap-3 mt-3 text-xs">
-              {product.reviewsCount > 0 ? (
-                <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span className="font-bold text-slate-900 tabular-nums">{product.rating}</span>
-                  <span className="text-slate-400">({product.reviewsCount} reviews)</span>
-                </div>
-              ) : (
-                <span className="text-slate-500">Verified Graphics Expert Release</span>
-              )}
-              <span className="text-slate-300">|</span>
-              <span className="text-slate-500 tabular-nums font-mono">
-                {product.downloadsCount} downloads
-              </span>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#0B1F3A] font-display leading-snug">{product.title}</h1>
+            <p className="mt-2 text-sm text-slate-500">By {product.designerName}</p>
           </div>
 
-          {/* Pricing Box */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-baseline justify-between">
+          <div className="p-4 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
             <div>
-              <span className="text-xs text-slate-500 block mb-0.5">Total Price</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">
-                  ${currentPrice.toFixed(2)}
-                </span>
-                {product.discountPrice !== undefined && selectedLicense !== 'Extended Commercial' && (
-                  <span className="text-sm text-slate-400 line-through tabular-nums font-mono">
-                    ${product.price.toFixed(2)}
-                  </span>
-                )}
-              </div>
+              <span className="text-xs text-slate-500 block mb-0.5">Price</span>
+              {isFree ? (
+                <span className="text-3xl font-extrabold text-[#0B1F3A]">Free</span>
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-[#0B1F3A] tabular-nums">${displayPrice.toFixed(2)}</span>
+                  {product.discountPrice !== undefined && (
+                    <span className="text-sm text-slate-400 line-through tabular-nums">${product.price.toFixed(2)}</span>
+                  )}
+                </div>
+              )}
             </div>
-            <span className="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 font-medium">
-              One-Time Purchase
+            <span className="text-xs text-[#17365D] bg-[#EAF0F8] px-2.5 py-1 rounded-md border border-[#C7D4E5] font-semibold">
+              {product.license} license
             </span>
           </div>
 
-          {/* Description */}
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-            {product.description}
-          </p>
+          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{product.description}</p>
 
-          {/* License Selection */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-800">Choose License Tier</label>
-              <button
-                onClick={() => setCurrentView('licenses')}
-                className="text-[11px] text-blue-600 hover:underline"
-              >
-                License Comparisons
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setSelectedLicense('Commercial')}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  selectedLicense === 'Commercial'
-                    ? 'border-slate-900 bg-white ring-1 ring-slate-900 shadow-sm'
-                    : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
-                }`}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-slate-900">Commercial</span>
-                  <span className="font-mono font-semibold">${basePrice.toFixed(2)}</span>
-                </div>
-                <p className="text-[11px] text-slate-500">For 1 client or your own business promo</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedLicense('Extended Commercial')}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  selectedLicense === 'Extended Commercial'
-                    ? 'border-slate-900 bg-white ring-1 ring-slate-900 shadow-sm'
-                    : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
-                }`}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-slate-900">Extended</span>
-                  <span className="font-mono font-semibold">${(basePrice * 2.5).toFixed(2)}</span>
-                </div>
-                <p className="text-[11px] text-slate-500">Unlimited clients & commercial runs</p>
-              </button>
-            </div>
-          </div>
-
-          {/* Specifications */}
-          <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500">Supported Formats:</span>
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                {product.fileFormats.map((fmt) => (
-                  <span
-                    key={fmt}
-                    className={`font-semibold ${
-                      fmt === 'CDR'
-                        ? 'text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-300 text-[11px]'
-                        : 'text-slate-900'
-                    }`}
+          {isFree ? (
+            <div className="space-y-3">
+              <h2 className="text-sm font-bold text-[#0B1F3A]">Download</h2>
+              {packageFiles.length === 0 ? (
+                <p className="text-sm text-slate-500">No downloadable files are attached to this design yet.</p>
+              ) : (
+                packageFiles.map((file) => (
+                  <button
+                    key={file.id}
+                    onClick={() => handleDownload(file.id, file.originalFileName)}
+                    disabled={downloading === file.id}
+                    className="w-full py-3.5 px-4 bg-[#17365D] hover:bg-[#0B1F3A] disabled:opacity-60 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors flex items-center justify-between gap-3"
                   >
-                    .{fmt}
-                  </span>
-                ))}
-              </div>
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Download className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Download .{file.format}</span>
+                    </span>
+                    <span className="font-mono text-xs opacity-80 shrink-0">{downloading === file.id ? 'Preparing…' : file.sizeFormatted}</span>
+                  </button>
+                ))
+              )}
             </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500">Software Compatibility:</span>
-              <span className="font-semibold text-slate-900 text-right">
-                {product.softwareCompatibility.join(', ')}
-              </span>
+          ) : (
+            <div className="p-4 rounded-xl border border-[#C7D4E5] bg-[#EAF0F8] space-y-3">
+              <h2 className="text-sm font-bold text-[#0B1F3A]">How to get this design</h2>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                Online payment is not available yet. To buy this design, send us an email and we will reply with payment details and deliver the
+                original files.
+              </p>
+              <a
+                href={`mailto:graphicsexpert65@gmail.com?subject=${mailSubject}&body=${mailBody}`}
+                className="inline-flex items-center gap-2 px-4 py-3 bg-[#17365D] hover:bg-[#0B1F3A] text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                Email to purchase
+              </a>
             </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500">Dimensions:</span>
-              <span className="font-semibold text-slate-900">{product.dimensions}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500">Color Profile & DPI:</span>
-              <span className="font-semibold text-slate-900">
-                {product.colorMode} · {product.dpi} DPI
-              </span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-500">Total Package Size:</span>
-              <span className="font-mono font-semibold text-slate-900">{product.fileDownloadSize}</span>
-            </div>
-          </div>
+          )}
 
-          {/* Action CTAs */}
-          <div className="space-y-2.5 pt-2">
-            <button
-              onClick={handleBuyNow}
-              disabled={product.status !== 'published'}
-              className="w-full py-3.5 px-4 bg-[#0F172A] hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md transition-colors flex items-center justify-center gap-2"
-            >
-              <Zap className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <span>Buy Now (${currentPrice.toFixed(2)})</span>
-            </button>
-
-            <button
-              onClick={() => addToCart(product, selectedLicense)}
-              disabled={product.status !== 'published'}
-              className="w-full py-3 px-4 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-900 border border-slate-300 rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-2"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Add to Shopping Bag</span>
-            </button>
-          </div>
+          <dl className="pt-2 border-t border-slate-200 space-y-2 text-sm">
+            <div className="flex justify-between gap-4 py-1 border-b border-slate-100">
+              <dt className="text-slate-500">Formats</dt>
+              <dd className="font-semibold text-[#0B1F3A] text-right">{product.fileFormats.map((f) => `.${f}`).join(' ')}</dd>
+            </div>
+            <div className="flex justify-between gap-4 py-1 border-b border-slate-100">
+              <dt className="text-slate-500">Software</dt>
+              <dd className="font-semibold text-[#0B1F3A] text-right">{product.softwareCompatibility.join(', ')}</dd>
+            </div>
+            <div className="flex justify-between gap-4 py-1 border-b border-slate-100">
+              <dt className="text-slate-500">Dimensions</dt>
+              <dd className="font-semibold text-[#0B1F3A] text-right">{product.dimensions}</dd>
+            </div>
+            <div className="flex justify-between gap-4 py-1 border-b border-slate-100">
+              <dt className="text-slate-500">Package size</dt>
+              <dd className="font-mono font-semibold text-[#0B1F3A]">{product.fileDownloadSize}</dd>
+            </div>
+          </dl>
         </div>
       </div>
 
-      {/* Detailed Information Section */}
       <div className="pt-10 border-t border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-8">
         <div className="md:col-span-7 space-y-8">
-          {/* Exact Files Included in Package */}
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 font-display mb-4">
-              Files Included in This Design Package ({packageFiles.length})
-            </h3>
+          <section>
+            <h2 className="text-lg font-bold text-[#0B1F3A] font-display mb-4">Files included ({packageFiles.length})</h2>
             {packageFiles.length > 0 ? (
-              <div className="space-y-2 text-xs">
+              <ul className="space-y-2 text-sm">
                 {packageFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="p-3 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3"
-                  >
+                  <li key={file.id} className="p-3 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="px-2 py-1 rounded bg-slate-900 text-white font-mono text-[10px] font-bold shrink-0">
-                        .{file.format}
-                      </span>
+                      <span className="px-2 py-1 rounded bg-[#0B1F3A] text-white font-mono text-[10px] font-bold shrink-0">.{file.format}</span>
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-900 truncate">{file.displayName}</p>
-                        <p className="text-[11px] text-slate-500">
-                          {file.softwareCompatibility} · Version: {file.supportedVersion}
+                        <p className="font-semibold text-[#0B1F3A] truncate">{file.displayName}</p>
+                        <p className="text-xs text-slate-500">
+                          {file.softwareCompatibility} · {file.supportedVersion}
                         </p>
                       </div>
                     </div>
-                    <span className="font-mono text-slate-500 shrink-0">{file.sizeFormatted}</span>
-                  </div>
+                    <span className="font-mono text-xs text-slate-500 shrink-0">{file.sizeFormatted}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <ul className="space-y-2.5 text-xs text-slate-700">
-                {product.whatsIncluded.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <ul className="space-y-2 text-sm text-slate-700">
+                {product.whatsIncluded.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#17365D] shrink-0 mt-0.5" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
             )}
-          </div>
+          </section>
 
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 font-display mb-4">
-              How to Edit This Template
-            </h3>
-            <div className="space-y-3">
+          <section>
+            <h2 className="text-lg font-bold text-[#0B1F3A] font-display mb-4">How to edit</h2>
+            <ol className="space-y-3">
               {product.howToEdit.map((step, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs"
-                >
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
-                    {idx + 1}
-                  </span>
+                <li key={step} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 text-sm">
+                  <span className="w-6 h-6 rounded-full bg-[#17365D] text-white font-bold text-xs flex items-center justify-center shrink-0">{idx + 1}</span>
                   <p className="text-slate-700 leading-relaxed">{step}</p>
-                </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
+
+        {product.tags.length > 0 && (
+          <div className="md:col-span-5">
+            <h2 className="text-sm font-bold text-[#0B1F3A] mb-3">Keywords</h2>
+            <div className="flex flex-wrap gap-2">
+              {product.tags.map((tag) => (
+                <span key={tag} className="px-2.5 py-1 rounded-full bg-[#EAF0F8] text-[#17365D] text-xs font-medium">
+                  {tag}
+                </span>
               ))}
             </div>
           </div>
-
-          {/* Reviews */}
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 font-display mb-2">
-              Customer Reviews ({product.reviewsCount})
-            </h3>
-            <p className="text-xs text-slate-500">
-              No reviews yet. Verified buyers can leave feedback after downloading this package.
-            </p>
-          </div>
-        </div>
-
-        <div className="md:col-span-5 space-y-6">
-          <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-            <h4 className="text-sm font-bold text-slate-900 mb-4 font-display">
-              Protected File Delivery & Compatibility
-            </h4>
-            <div className="space-y-4 text-xs">
-              <div>
-                <p className="font-semibold text-slate-800 mb-1">Are original editable files preserved?</p>
-                <p className="text-slate-600">
-                  Yes. Your download delivers the exact original .CDR, .AI, .EPS, .PSD, .PSB, .PDF, or .ZIP master files uploaded by Graphics Expert without flattening or quality loss.
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-800 mb-1">How do I download after purchase?</p>
-                <p className="text-slate-600">
-                  After checkout confirmation, a signed download token unlocks both the complete ZIP bundle and individual file downloads inside your Customer Dashboard.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Related Designs */}
       {relatedProducts.length > 0 && (
-        <div className="pt-10 border-t border-slate-200">
-          <h3 className="text-xl font-bold text-slate-900 font-display mb-6">
-            Related {product.categoryName}
-          </h3>
+        <section className="pt-10 border-t border-slate-200">
+          <h2 className="text-xl font-bold text-[#0B1F3A] font-display mb-6">More {product.categoryName}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Zoom Lightbox Modal */}
       {isZoomOpen && activeImageSrc && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setIsZoomOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setIsZoomOpen(false)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
-            aria-label="Close zoomed preview"
-          >
+        <div className="fixed inset-0 z-50 bg-[#0B1F3A]/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsZoomOpen(false)} role="dialog" aria-modal="true">
+          <button type="button" onClick={() => setIsZoomOpen(false)} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white" aria-label="Close zoomed preview">
             <X className="w-6 h-6" />
           </button>
-          <img
-            src={activeImageSrc}
-            alt={product.title}
-            referrerPolicy="no-referrer"
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-full max-h-[88vh] object-contain rounded-xl shadow-2xl"
-          />
+          <img src={activeImageSrc} alt={product.title} onClick={(e) => e.stopPropagation()} className="max-w-full max-h-[88vh] object-contain rounded-xl shadow-2xl" />
         </div>
       )}
     </div>

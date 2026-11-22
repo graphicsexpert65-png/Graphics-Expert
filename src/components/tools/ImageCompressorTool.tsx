@@ -105,7 +105,7 @@ export const ImageCompressorTool: React.FC = () => {
             Reduce image payload by up to 80% without losing visual clarity. Instant in-browser compression.
           </p>
         </div>
-        <div className="text-xs text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200 self-start md:self-auto font-medium">
+        <div className="text-xs text-[#17365D] bg-[#EAF0F8] px-3 py-1 rounded-lg border border-[#C7D4E5] self-start md:self-auto font-medium">
           Zero Data Uploaded to Cloud
         </div>
       </div>
@@ -147,9 +147,9 @@ export const ImageCompressorTool: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50">
-              <span className="text-xs font-semibold text-blue-700 block mb-1">Total Savings</span>
-              <p className="text-lg font-bold text-blue-950 font-mono tabular-nums">
+            <div className="p-4 rounded-xl border border-[#C7D4E5] bg-[#EAF0F8]/50">
+              <span className="text-xs font-semibold text-[#17365D] block mb-1">Total Savings</span>
+              <p className="text-lg font-bold text-[#17365D] font-mono tabular-nums">
                 -{savedPercentage}% Reduction
               </p>
             </div>

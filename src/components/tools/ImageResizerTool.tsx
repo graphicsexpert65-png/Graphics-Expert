@@ -257,12 +257,12 @@ export const ImageResizerTool: React.FC = () => {
 
             {/* DPI Selector (Crucial when Inches / CM selected) */}
             {unit !== 'pixels' && (
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+              <div className="p-3 bg-[#EAF0F8] rounded-xl border border-[#C7D4E5]">
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-amber-900">
+                  <label className="text-xs font-semibold text-[#0B1F3A]">
                     Print Target DPI (Dots Per Inch)
                   </label>
-                  <span className="text-xs font-mono font-bold text-amber-900">{dpi} DPI</span>
+                  <span className="text-xs font-mono font-bold text-[#0B1F3A]">{dpi} DPI</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {[72, 96, 150, 300].map((d) => (
@@ -272,15 +272,15 @@ export const ImageResizerTool: React.FC = () => {
                       onClick={() => setDpi(d)}
                       className={`py-1.5 text-xs font-medium rounded-md border ${
                         dpi === d
-                          ? 'bg-amber-900 text-white border-amber-900'
-                          : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
+                          ? 'bg-[#17365D] text-white border-[#17365D]'
+                          : 'bg-white text-[#0B1F3A] border-[#C7D4E5] hover:bg-[#EAF0F8]'
                       }`}
                     >
                       {d} {d === 300 ? 'Print' : d === 72 ? 'Screen' : ''}
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-amber-800 mt-2">
+                <p className="text-[11px] text-[#17365D] mt-2">
                   Formula: {inputWidth} {unit} × {dpi} DPI = <strong>{outputWidthPx} × {outputHeightPx} px</strong>
                 </p>
               </div>

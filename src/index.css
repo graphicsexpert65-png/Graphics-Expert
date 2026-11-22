@@ -33,11 +33,3 @@
 
 ::selection { background: #17365D; color: #fff; }
 a, button { -webkit-tap-highlight-color: transparent; }
-
-/* Retire legacy orange utility classes throughout older screens. */
-[class*="bg-orange-"], [class*="bg-amber-"] { background-color: #17365D !important; }
-[class*="text-orange-"], [class*="text-amber-"] { color: #17365D !important; }
-[class*="border-orange-"], [class*="border-amber-"] { border-color: #C7D4E5 !important; }
-[class*="ring-orange-"], [class*="ring-amber-"] { --tw-ring-color: #17365D !important; }
-[class*="from-orange-"], [class*="from-amber-"] { --tw-gradient-from: #17365D var(--tw-gradient-from-position) !important; }
-[class*="to-orange-"], [class*="to-amber-"] { --tw-gradient-to: #0B1F3A var(--tw-gradient-to-position) !important; }

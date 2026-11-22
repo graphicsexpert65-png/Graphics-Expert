@@ -143,7 +143,7 @@ export const FreeToolsView: React.FC = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 mb-1.5 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-base font-bold text-slate-900 mb-1.5 group-hover:text-[#17365D] transition-colors">
                       {tool.name}
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed">
@@ -169,7 +169,7 @@ export const FreeToolsView: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <Wand2 className="w-4 h-4 text-indigo-600" />
+                  <Wand2 className="w-4 h-4 text-[#17365D]" />
                   <h2 className="text-lg font-bold text-slate-900 font-display">
                     Future AI Creative Tools
                   </h2>
@@ -178,7 +178,7 @@ export const FreeToolsView: React.FC = () => {
                   Next-generation generative creative pipelines currently in active development.
                 </p>
               </div>
-              <span className="inline-flex items-center text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-lg self-start">
+              <span className="inline-flex items-center text-xs font-semibold text-[#17365D] bg-[#EAF0F8] border border-[#C7D4E5] px-3 py-1 rounded-lg self-start">
                 Roadmap Phase 4
               </span>
             </div>
@@ -191,7 +191,7 @@ export const FreeToolsView: React.FC = () => {
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] uppercase font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      <span className="text-[10px] uppercase font-bold text-[#17365D] bg-[#EAF0F8] px-2 py-0.5 rounded border border-[#C7D4E5]">
                         Coming Soon
                       </span>
                     </div>

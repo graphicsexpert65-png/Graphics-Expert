@@ -134,7 +134,7 @@ export const MarketplaceView: React.FC = () => {
             </span>
             <button
               onClick={resetFilters}
-              className="text-[11px] text-blue-600 hover:underline flex items-center gap-1"
+              className="text-[11px] text-[#17365D] hover:underline flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
               Reset All
@@ -195,7 +195,7 @@ export const MarketplaceView: React.FC = () => {
                     selectedFormat === fmt
                       ? 'bg-slate-900 text-white border-slate-900'
                       : fmt === 'CDR'
-                      ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 font-semibold'
+                      ? 'bg-[#EAF0F8] text-[#0B1F3A] border-[#9FB4CF] hover:bg-[#DCE6F3] font-semibold'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -293,7 +293,7 @@ export const MarketplaceView: React.FC = () => {
             <div className="lg:hidden p-4 bg-white rounded-xl border border-slate-200 space-y-4 text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                 <span className="font-bold text-slate-800">Filter Options</span>
-                <button onClick={resetFilters} className="text-blue-600 font-medium">
+                <button onClick={resetFilters} className="text-[#17365D] font-medium">
                   Reset
                 </button>
               </div>

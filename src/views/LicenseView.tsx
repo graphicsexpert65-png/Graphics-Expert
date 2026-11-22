@@ -5,7 +5,7 @@ export const LicenseView: React.FC = () => {
   return (
     <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-10">
       <div>
-        <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[#17365D]">
           Licensing Agreements
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-display tracking-tight mt-1">
